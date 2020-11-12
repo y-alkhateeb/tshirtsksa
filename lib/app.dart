@@ -8,7 +8,7 @@ import 'core/localization/localization_provider.dart';
 import 'core/localization/restart_widget.dart';
 import 'core/localization/translations.dart';
 import 'core/route/route_generator.dart';
-import 'feature/editor/screen/tishirt_editor.dart';
+import 'feature/image_editer_pro/screen/image_editor_pro.dart';
 
 final navigationKey = GlobalKey<NavigatorState>();
 

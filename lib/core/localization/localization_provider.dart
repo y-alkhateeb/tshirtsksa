@@ -4,10 +4,10 @@ import '../constants.dart';
 import 'restart_widget.dart';
 
 class AppConfigProvider extends ChangeNotifier {
-  Locale _appLocale = Locale(LANG_AR);
+  Locale _appLocale = Locale(LANG_EN);
 
   /// Get current Locale supported
-  Locale get appLocal => _appLocale ?? Locale(LANG_AR);
+  Locale get appLocal => _appLocale ?? Locale(LANG_EN);
   fetchLocale() async {
     var prefs = await SpUtil.getInstance();
     /// check if the application is first start or not
@@ -16,8 +16,8 @@ class AppConfigProvider extends ChangeNotifier {
       await prefs.putBool(KEY_FIRST_START, true);
     }
     if (prefs.getString(KEY_LANGUAGE) == null) {
-      _appLocale = Locale(LANG_AR);
-      await prefs.putString(KEY_LANGUAGE, LANG_AR);
+      _appLocale = Locale(LANG_EN);
+      await prefs.putString(KEY_LANGUAGE, LANG_EN);
       return Null;
     }
     _appLocale = Locale(await prefs.getString(KEY_LANGUAGE));
