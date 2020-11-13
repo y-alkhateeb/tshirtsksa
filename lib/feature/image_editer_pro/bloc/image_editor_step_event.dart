@@ -22,3 +22,36 @@ class AddImageEvent extends ImageEditorStepEvent {
         width,
       ];
 }
+
+class ExitEditImageEvent extends ImageEditorStepEvent {
+
+  const ExitEditImageEvent();
+
+  @override
+  List<Object> get props => [];
+}
+
+class SaveEditImageEvent extends ImageEditorStepEvent {
+  final File baseImage;
+  final int height;
+  final int width;
+
+  const SaveEditImageEvent({
+    @required this.baseImage,
+    @required this.height,
+    @required this.width,
+  });
+
+  @override
+  List<Object> get props => [
+    baseImage,
+    height,
+    width,
+  ];
+}
+
+class AddTextImageEvent extends ImageEditorStepEvent {
+  @override
+  List<Object> get props => [];
+
+}

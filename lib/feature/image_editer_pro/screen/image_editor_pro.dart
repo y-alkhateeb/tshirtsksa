@@ -12,6 +12,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:tshirtsksa/core/common/app_colors.dart';
 import 'package:tshirtsksa/core/common/dimens.dart';
 import 'package:tshirtsksa/core/common/gaps.dart';
+import 'package:tshirtsksa/core/ui/show_error.dart';
 import 'package:tshirtsksa/feature/image_editer_pro/bloc/image_editor_step_bloc.dart';
 import '../modules/all_emojies.dart';
 import '../modules/bottombar_container.dart';
@@ -52,6 +53,8 @@ class _TShirtEditorState extends State<TShirtEditor> {
   // create some values
   Color pickerColor = Color(0xff443a49);
   Color currentColor = Color(0xff443a49);
+
+  Color _borderBoxColor = Colors.black;
 
 // ValueChanged<Color> callback
   void changeColor(Color color) {
@@ -126,6 +129,7 @@ class _TShirtEditorState extends State<TShirtEditor> {
               controller: screenshotController,
               child: BlocBuilder(
                 cubit: imageEditorStepBloc,
+                  buildWhen: (c, p) => c != p,
                   builder: (context, state) {
                   if(state is ImageEditorFirstStepInitialState){
                     return InkWell(
@@ -191,6 +195,49 @@ class _TShirtEditorState extends State<TShirtEditor> {
                                           decoration: BoxDecoration(
                                               border: Border.all(color: Colors.black,width: 0.2,),
                                           ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )),
+                    );
+                  }
+                  if(state is PaintImageState){
+                    return Container(
+                      width: MediaQuery.of(context).size.width,
+                      height: MediaQuery.of(context).size.height,
+                      child: RepaintBoundary(
+                          key: globalKey,
+                          child: Stack(
+                            children: <Widget>[
+                              state.baseImage != null
+                                  ? InteractiveViewer(
+                                child: Image.file(
+                                  state.baseImage,
+                                  height: state.height.toDouble(),
+                                  width: state.width.toDouble(),
+                                  fit: BoxFit.contain,
+                                ),
+                              )
+                                  : Container(),
+                              Align(
+                                alignment: Alignment.center,
+                                child: Container(
+                                  width: _editorBoxWidth,
+                                  height: _editorBoxHeight,
+                                  child: Stack(
+                                    children: [
+                                      Align(
+                                        alignment: Alignment.center,
+                                        child: Container(
+                                          width: _editorBoxWidth,
+                                          height: _editorBoxHeight,
+                                          decoration: BoxDecoration(
+                                            border: Border.all(color: Colors.black,width: 0.2,),
+                                          ),
                                           child: GestureDetector(
                                             /// TODO not used !
                                             // onPanUpdate: (DragUpdateDetails details) {
@@ -210,34 +257,52 @@ class _TShirtEditorState extends State<TShirtEditor> {
                                           ),
                                         ),
                                       ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )),
+                    );
+                  }
+                  if(state is TextImageState){
+                    return Container(
+                      width: MediaQuery.of(context).size.width,
+                      height: MediaQuery.of(context).size.height,
+                      child: RepaintBoundary(
+                          key: globalKey,
+                          child: Stack(
+                            children: <Widget>[
+                              state.baseImage != null
+                                  ? InteractiveViewer(
+                                child: Image.file(
+                                  state.baseImage,
+                                  height: state.height.toDouble(),
+                                  width: state.width.toDouble(),
+                                  fit: BoxFit.contain,
+                                ),
+                              )
+                                  : Container(),
+                              Align(
+                                alignment: Alignment.center,
+                                child: Container(
+                                  width: _editorBoxWidth,
+                                  height: _editorBoxHeight,
+                                  child: Stack(
+                                    children: [
+                                      Align(
+                                        alignment: Alignment.center,
+                                        child: Container(
+                                          width: _editorBoxWidth,
+                                          height: _editorBoxHeight,
+                                          decoration: BoxDecoration(
+                                            border: Border.all(color: _borderBoxColor,width: 0.2,),
+                                          ),
+                                        ),
+                                      ),
                                       Stack(
                                         children: multiWidGet.asMap().entries.map((f) {
-                                          return type[f.key] == 1
-                                              ? EmojiView(
-                                            left: offsets[f.key].dx,
-                                            top: offsets[f.key].dy,
-                                            ontap: () {
-                                              scaf.currentState
-                                                  .showBottomSheet((context) {
-                                                return Sliders(
-                                                  size: f.key,
-                                                  sizevalue: fontSize[f.key].toDouble(),
-                                                );
-                                              });
-                                            },
-                                            onpanupdate: (details) {
-                                              setState(() {
-                                                offsets[f.key] = Offset(
-                                                    offsets[f.key].dx + details.delta.dx,
-                                                    offsets[f.key].dy + details.delta.dy);
-                                              });
-                                            },
-                                            value: f.value.toString(),
-                                            fontsize: fontSize[f.key].toDouble(),
-                                            align: TextAlign.center,
-                                          )
-                                              : type[f.key] == 2
-                                              ? TextView(
+                                          return TextView(
                                             left: offsets[f.key].dx,
                                             top: offsets[f.key].dy,
                                             ontap: () {
@@ -262,8 +327,77 @@ class _TShirtEditorState extends State<TShirtEditor> {
                                             value: f.value.toString(),
                                             fontsize: fontSize[f.key].toDouble(),
                                             align: TextAlign.center,
-                                          )
-                                              :  Container();
+                                          );
+                                        }).toList(),
+                                      )
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )),
+                    );
+                  }
+                  if(state is EmojiImageState){
+                    return Container(
+                      width: MediaQuery.of(context).size.width,
+                      height: MediaQuery.of(context).size.height,
+                      child: RepaintBoundary(
+                          key: globalKey,
+                          child: Stack(
+                            children: <Widget>[
+                              state.baseImage != null
+                                  ? InteractiveViewer(
+                                child: Image.file(
+                                  state.baseImage,
+                                  height: state.height.toDouble(),
+                                  width: state.width.toDouble(),
+                                  fit: BoxFit.contain,
+                                ),
+                              )
+                                  : Container(),
+                              Align(
+                                alignment: Alignment.center,
+                                child: Container(
+                                  width: _editorBoxWidth,
+                                  height: _editorBoxHeight,
+                                  child: Stack(
+                                    children: [
+                                      Align(
+                                        alignment: Alignment.center,
+                                        child: Container(
+                                          width: _editorBoxWidth,
+                                          height: _editorBoxHeight,
+                                          decoration: BoxDecoration(
+                                            border: Border.all(color: Colors.black,width: 0.2,),
+                                          ),
+                                        ),
+                                      ),
+                                      Stack(
+                                        children: multiWidGet.asMap().entries.map((f) {
+                                          return EmojiView(
+                                            left: offsets[f.key].dx,
+                                            top: offsets[f.key].dy,
+                                            ontap: () {
+                                              scaf.currentState
+                                                  .showBottomSheet((context) {
+                                                return Sliders(
+                                                  size: f.key,
+                                                  sizevalue: fontSize[f.key].toDouble(),
+                                                );
+                                              });
+                                            },
+                                            onpanupdate: (details) {
+                                              setState(() {
+                                                offsets[f.key] = Offset(
+                                                    offsets[f.key].dx + details.delta.dx,
+                                                    offsets[f.key].dy + details.delta.dy);
+                                              });
+                                            },
+                                            value: f.value.toString(),
+                                            fontsize: fontSize[f.key].toDouble(),
+                                            align: TextAlign.center,
+                                          );
                                         }).toList(),
                                       )
                                     ],
@@ -309,206 +443,277 @@ class _TShirtEditorState extends State<TShirtEditor> {
           ),
           bottomNavigationBar: openBottomSheet
               ?  Container()
-              : Container(
-                  decoration: BoxDecoration(
-                      color: Colors.white,
-                      boxShadow: [BoxShadow(blurRadius: 4)]),
-                  height: 70,
-                  child:  ListView(
-                    scrollDirection: Axis.horizontal,
-                    children: <Widget>[
-                      BottomBarContainer(
-                        colors: Colors.white,
-                        icons: FontAwesomeIcons.brush,
-                        onTap: () {
-                          // raise the [showDialog] widget
-                          showDialog(
-                              context: context,
-                              child: AlertDialog(
-                                title: const Text('Pick a color!'),
-                                content: SingleChildScrollView(
-                                  child: ColorPicker(
-                                    pickerColor: pickerColor,
-                                    onColorChanged: changeColor,
-                                    showLabel: true,
-                                    pickerAreaHeightPercent: 0.8,
-                                  ),
-                                ),
-                                actions: <Widget>[
-                                  FlatButton(
-                                    child: const Text('Got it'),
-                                    onPressed: () {
-                                      setState(() => currentColor = pickerColor);
-                                      Navigator.of(context).pop();
-                                    },
-                                  ),
-                                ],
-                              ));
-                        },
-                      ),
-                      BottomBarContainer(
-                        icons: Icons.text_fields,
-                        onTap: () async {
-                          final value = await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => TextEditor()));
-                          if (value.toString().isEmpty) {
-                            print("true");
-                          } else {
-                            type.add(2);
-                            fontSize.add(20);
-                            offsets.add(Offset.zero);
-                            multiWidGet.add(value);
-                            howMuchWidgetIs++;
-                          }
-                        },
-                      ),
-                      BottomBarContainer(
-                        icons: FontAwesomeIcons.eraser,
-                        onTap: () {
-                          _controller.clear();
-                          type.clear();
-                          fontSize.clear();
-                          offsets.clear();
-                          multiWidGet.clear();
-                          howMuchWidgetIs = 0;
-                        },
-                      ),
-                      BottomBarContainer(
-                        icons: Icons.photo,
-                        onTap: () {
-                          showModalBottomSheet(
-                              context: context,
-                              builder: (context) {
-                                return ColorPiskersSlider();
-                              });
-                        },
-                      ),
-                      BottomBarContainer(
-                        icons: FontAwesomeIcons.smile,
-                        onTap: () {
-                          Future getemojis = showModalBottomSheet(
-                              context: context,
-                              builder: (BuildContext context) {
-                                return Emojies();
-                              });
-                          getemojis.then((value) {
-                            if (value != null) {
-                              type.add(1);
-                              fontSize.add(20);
-                              offsets.add(Offset.zero);
-                              multiWidGet.add(value);
-                              howMuchWidgetIs++;
-                            }
-                          });
-                        },
-                      ),
-                      BottomBarContainer(
-                        icons: FontAwesomeIcons.boxes,
-                        onTap: (){
-                          showCupertinoDialog(
-                              context: context,
-                              builder: (context) {
-                                return AlertDialog(
-                                  title:  Text("Select Height Width"),
-                                  actions: <Widget>[
-                                    FlatButton(
-                                      onPressed: () => Navigator.pop(context),
-                                      textColor: Colors.red,
-                                      child: Text("Cancel"),
+              : BlocBuilder(
+                cubit: imageEditorStepBloc,
+                buildWhen: (c, p) => c != p,
+                builder: (context, state) {
+                  if(state is ImageEditorFirstStepInitialState){
+                    return Container(
+                      decoration: BoxDecoration(
+                          color: Colors.white,
+                          boxShadow: [BoxShadow(blurRadius: 4)]),
+                      height: 0,
+                    );
+                  }
+                 else if(state is InsertImageState){
+                    return Container(
+                      decoration: BoxDecoration(
+                          color: Colors.white,
+                          boxShadow: [BoxShadow(blurRadius: 4)]),
+                      height: 70,
+                      child:  ListView(
+                        scrollDirection: Axis.horizontal,
+                        children: <Widget>[
+                          BottomBarContainer(
+                            colors: Colors.white,
+                            icons: FontAwesomeIcons.brush,
+                            onTap: () {
+                              // raise the [showDialog] widget
+                              showDialog(
+                                  context: context,
+                                  child: AlertDialog(
+                                    title: const Text('Pick a color!'),
+                                    content: SingleChildScrollView(
+                                      child: ColorPicker(
+                                        pickerColor: pickerColor,
+                                        onColorChanged: changeColor,
+                                        showLabel: true,
+                                        pickerAreaHeightPercent: 0.8,
+                                      ),
                                     ),
-                                    FlatButton(
+                                    actions: <Widget>[
+                                      FlatButton(
+                                        child: const Text('Use it'),
                                         onPressed: () {
-                                          setState(() {
-                                            _editorBoxHeight = double.parse(heightTextController.text??0);
-                                            _editorBoxWidth = double.parse(widthTextController.text??0);
-                                          });
-                                          Navigator.pop(context);
+                                          setState(() => currentColor = pickerColor);
+                                          Navigator.of(context).pop();
                                         },
-                                        child:  Text("Done"))
-                                  ],
-                                  content:  SingleChildScrollView(
-                                    child:  Column(
-                                      mainAxisAlignment: MainAxisAlignment.start,
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: <Widget>[
-                                        Text("Define Height"),
-                                        SizedBox(
-                                          height: 10,
-                                        ),
-                                        TextField(
-                                            controller: heightTextController,
-                                            keyboardType:
-                                            TextInputType.numberWithOptions(),
-                                            decoration: InputDecoration(
-                                                hintText: 'Height',
-                                                contentPadding:
-                                                EdgeInsets.only(left: 10),
-                                                border: OutlineInputBorder())),
-                                        SizedBox(
-                                          height: 10,
-                                        ),
-                                        Text("Define Width"),
-                                        SizedBox(
-                                          height: 10,
-                                        ),
-                                        TextField(
-                                            controller: widthTextController,
-                                            keyboardType:
-                                            TextInputType.numberWithOptions(),
-                                            decoration: InputDecoration(
-                                                hintText: 'Width',
-                                                contentPadding:
-                                                EdgeInsets.only(left: 10),
-                                                border: OutlineInputBorder())),
-                                      ],
-                                    ),
-                                  ),
-                                );
+                                      ),
+                                    ],
+                                  ));
+                            },
+                          ),
+                          BottomBarContainer(
+                            icons: Icons.text_fields,
+                            onTap: () async {
+                              final value = await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => TextEditor()));
+                              if (value.toString().isEmpty) {
+                                print("true");
+                              } else {
+                                imageEditorStepBloc.add(AddTextImageEvent());
+                                type.add(2);
+                                fontSize.add(20);
+                                offsets.add(Offset.zero);
+                                multiWidGet.add(value);
+                                howMuchWidgetIs++;
+                              }
+                            },
+                          ),
+                          BottomBarContainer(
+                            icons: FontAwesomeIcons.eraser,
+                            onTap: () {
+                              _controller.clear();
+                              type.clear();
+                              fontSize.clear();
+                              offsets.clear();
+                              multiWidGet.clear();
+                              howMuchWidgetIs = 0;
+                            },
+                          ),
+                          BottomBarContainer(
+                            icons: Icons.photo,
+                            onTap: () {
+                              showModalBottomSheet(
+                                  context: context,
+                                  builder: (context) {
+                                    return ColorPiskersSlider();
+                                  });
+                            },
+                          ),
+                          BottomBarContainer(
+                            icons: FontAwesomeIcons.smile,
+                            onTap: () {
+                              Future getemojis = showModalBottomSheet(
+                                  context: context,
+                                  builder: (BuildContext context) {
+                                    return Emojies();
+                                  });
+                              getemojis.then((value) {
+                                if (value != null) {
+                                  type.add(1);
+                                  fontSize.add(20);
+                                  offsets.add(Offset.zero);
+                                  multiWidGet.add(value);
+                                  howMuchWidgetIs++;
+                                }
                               });
-                        },
+                            },
+                          ),
+                          BottomBarContainer(
+                            icons: FontAwesomeIcons.boxes,
+                            onTap: (){
+                              showCupertinoDialog(
+                                  context: context,
+                                  builder: (context) {
+                                    return AlertDialog(
+                                      title:  Text("Select Height Width"),
+                                      actions: <Widget>[
+                                        FlatButton(
+                                          onPressed: () => Navigator.pop(context),
+                                          textColor: Colors.red,
+                                          child: Text("Cancel"),
+                                        ),
+                                        FlatButton(
+                                            onPressed: () {
+                                              setState(() {
+                                                _editorBoxHeight = double.parse(heightTextController.text??0);
+                                                _editorBoxWidth = double.parse(widthTextController.text??0);
+                                              });
+                                              Navigator.pop(context);
+                                            },
+                                            child:  Text("Done"))
+                                      ],
+                                      content:  SingleChildScrollView(
+                                        child:  Column(
+                                          mainAxisAlignment: MainAxisAlignment.start,
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: <Widget>[
+                                            Text("Define Height"),
+                                            SizedBox(
+                                              height: 10,
+                                            ),
+                                            TextField(
+                                                controller: heightTextController,
+                                                keyboardType:
+                                                TextInputType.numberWithOptions(),
+                                                decoration: InputDecoration(
+                                                    hintText: 'Height',
+                                                    contentPadding:
+                                                    EdgeInsets.only(left: 10),
+                                                    border: OutlineInputBorder())),
+                                            SizedBox(
+                                              height: 10,
+                                            ),
+                                            Text("Define Width"),
+                                            SizedBox(
+                                              height: 10,
+                                            ),
+                                            TextField(
+                                                controller: widthTextController,
+                                                keyboardType:
+                                                TextInputType.numberWithOptions(),
+                                                decoration: InputDecoration(
+                                                    hintText: 'Width',
+                                                    contentPadding:
+                                                    EdgeInsets.only(left: 10),
+                                                    border: OutlineInputBorder())),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  });
+                            },
+                          ),
+                          BottomBarContainer(
+                            icons: Icons.clear,
+                            onTap: (){
+                              _controller.points.clear();
+                              setState(() {});
+                            },
+                          ),
+                          BottomBarContainer(
+                            icons: Icons.camera,
+                            onTap: (){
+                              openPhotoBottomSheets();
+                            },
+                          ),
+                          BottomBarContainer(
+                            icons: Icons.save_alt,
+                            onTap: (){
+                              File _imageFile;
+                              _imageFile = null;
+                              screenshotController
+                                  .capture(
+                                  delay: Duration(milliseconds: 500), pixelRatio: 1.5)
+                                  .then((File image) async {
+                                //print("Capture Done");
+                                setState(() {
+                                  _imageFile = image;
+                                });
+                                final paths = await getExternalStorageDirectory();
+                                image.copy(paths.path +
+                                    '/' +
+                                    DateTime.now().millisecondsSinceEpoch.toString() +
+                                    '.png');
+                                Navigator.pop(context, image);
+                              }).catchError((onError) {
+                                print(onError);
+                              });
+                            },
+                          ),
+                        ],
                       ),
-                      BottomBarContainer(
-                        icons: Icons.clear,
-                        onTap: (){
-                          _controller.points.clear();
-                          setState(() {});
-                        },
+                    );
+                  }
+                  if(state is TextImageState){
+                    return Container(
+                      decoration: BoxDecoration(
+                          color: Colors.white,
+                          boxShadow: [BoxShadow(blurRadius: 4)]),
+                      height: 70,
+                      child:  Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: <Widget>[
+                          BottomBarContainer(
+                            icons: Icons.close,
+                            onTap: (){
+                              multiWidGet.clear();
+                              imageEditorStepBloc.add(ExitEditImageEvent());
+                            },
+                          ),
+                          BottomBarContainer(
+                            icons: Icons.assignment_turned_in_sharp,
+                            onTap: (){
+                              setState(() {
+                                _borderBoxColor = Colors.transparent;
+                              });
+                              File _imageFile;
+                              _imageFile = null;
+                              screenshotController
+                                  .capture(
+                                  delay: Duration(milliseconds: 500), pixelRatio: 1.5)
+                                  .then((File image) async {
+                                final _imageFromPicker = File(image.path);
+                                final decodedImage =
+                                await decodeImageFromList(
+                                    _imageFromPicker.readAsBytesSync());
+                                imageEditorStepBloc.add(
+                                    SaveEditImageEvent(
+                                      baseImage: image,
+                                      height: decodedImage.height,
+                                      width: decodedImage.width
+                                    )
+                                );
+                                multiWidGet.clear();
+                                setState(() {
+                                  _borderBoxColor = Colors.black;
+                                });
+                              }).catchError((onError) {
+                                ShowError.showCustomError(context, "onError");
+                              });
+                            },
+                          ),
+                        ],
                       ),
-                      BottomBarContainer(
-                        icons: Icons.camera,
-                        onTap: (){
-                          openPhotoBottomSheets();
-                        },
-                      ),
-                      BottomBarContainer(
-                        icons: Icons.save_alt,
-                        onTap: (){
-                          File _imageFile;
-                          _imageFile = null;
-                          screenshotController
-                              .capture(
-                              delay: Duration(milliseconds: 500), pixelRatio: 1.5)
-                              .then((File image) async {
-                            //print("Capture Done");
-                            setState(() {
-                              _imageFile = image;
-                            });
-                            final paths = await getExternalStorageDirectory();
-                            image.copy(paths.path +
-                                '/' +
-                                DateTime.now().millisecondsSinceEpoch.toString() +
-                                '.png');
-                            Navigator.pop(context, image);
-                          }).catchError((onError) {
-                            print(onError);
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-                )
+                    );
+                  }
+                  if(state is EmojiImageState){}
+                  return Container();
+                }
+              )
       ),
     );
   }
