@@ -59,6 +59,7 @@ dependencies:
   signature: ^3.2.0
   # A HSV(HSB)/HSL color picker inspired by chrome devtools and a material color picker for your flutter app.
   flutter_colorpicker: ^0.3.4
+  matrix_gesture_detector: ^0.1.0
 
 
   cupertino_icons: ^1.0.0

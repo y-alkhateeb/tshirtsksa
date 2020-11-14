@@ -35,11 +35,10 @@ class PaintImageState extends ImageEditorStepState{
   final File baseImage;
   final int height;
   final int width;
-
   const PaintImageState({
-  @required this.baseImage,
-  @required this.height,
-  @required this.width,
+    @required this.baseImage,
+    @required this.height,
+    @required this.width,
   });
 
   @override
@@ -53,6 +52,7 @@ class PaintImageState extends ImageEditorStepState{
 
 
 class EmojiImageState extends ImageEditorStepState{
+
   final File baseImage;
   final int height;
   final int width;
@@ -77,7 +77,6 @@ class TextImageState extends ImageEditorStepState{
   final File baseImage;
   final int height;
   final int width;
-
   const TextImageState({
     @required this.baseImage,
     @required this.height,
@@ -90,5 +89,26 @@ class TextImageState extends ImageEditorStepState{
     height,
     width,
   ];
+}
 
+class ImageLayerState extends ImageEditorStepState{
+  final File baseImage;
+  final int height;
+  final int width;
+  final File layerImage;
+
+  const ImageLayerState({
+    @required this.layerImage,
+    @required this.baseImage,
+    @required this.height,
+    @required this.width,
+  });
+
+  @override
+  List<Object> get props => [
+    layerImage,
+    baseImage,
+    height,
+    width,
+  ];
 }

@@ -24,35 +24,57 @@ class ImageEditorStepBloc
     if (event is AddImageEvent) {
       _listOfEditingImage.add(event.baseImage);
       _height = event.height;
-      _width = event.height;
+      _width = event.width;
       yield InsertImageState(
         baseImage: event.baseImage,
         height: event.height,
-        width: event.height,
+        width: event.width,
       );
     }
     else if (event is ExitEditImageEvent){
       yield InsertImageState(
         baseImage: _listOfEditingImage.last,
         height: _height,
-        width: _height,
+        width: _width,
       );
     }
     else if(event is SaveEditImageEvent){
       _listOfEditingImage.add(event.baseImage);
       _height = event.height;
-      _width = event.height;
+      _width = event.width;
       yield InsertImageState(
         baseImage: _listOfEditingImage.last,
         height: _height,
-        width: _height,
+        width: _width,
       );
     }
     else if(event is AddTextImageEvent){
       yield TextImageState(
         baseImage: _listOfEditingImage.last,
         height: _height,
-        width: _height,
+        width: _width,
+      );
+    }
+    else if(event is AddEmojiImageEvent){
+      yield EmojiImageState(
+        baseImage: _listOfEditingImage.last,
+        height: _height,
+        width: _width,
+      );
+    }
+    else if(event is AddPainterImageEvent){
+      yield PaintImageState(
+        baseImage: _listOfEditingImage.last,
+        height: _height,
+        width: _width,
+      );
+    }
+    else if(event is AddImageLayerEvent){
+      yield ImageLayerState(
+        layerImage: event.baseImage,
+        baseImage: _listOfEditingImage.last,
+        height: _height,
+        width: _width,
       );
     }
   }

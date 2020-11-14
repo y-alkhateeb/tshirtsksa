@@ -9,6 +9,7 @@ import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:matrix_gesture_detector/matrix_gesture_detector.dart';
 import 'package:tshirtsksa/core/common/app_colors.dart';
 import 'package:tshirtsksa/core/common/dimens.dart';
 import 'package:tshirtsksa/core/common/gaps.dart';
@@ -42,7 +43,7 @@ class TShirtEditor extends StatefulWidget {
 var slider = 0.0;
 
 class _TShirtEditorState extends State<TShirtEditor> {
-  final ImageEditorStepBloc imageEditorStepBloc = ImageEditorStepBloc();
+  final ImageEditorStepBloc _imageEditorStepBloc = ImageEditorStepBloc();
   final imagePicker = ImagePicker();
   double _editorBoxWidth = 300;
   double _editorBoxHeight = 300;
@@ -55,6 +56,8 @@ class _TShirtEditorState extends State<TShirtEditor> {
   Color currentColor = Color(0xff443a49);
 
   Color _borderBoxColor = Colors.black;
+
+
 
 // ValueChanged<Color> callback
   void changeColor(Color color) {
@@ -76,18 +79,10 @@ class _TShirtEditorState extends State<TShirtEditor> {
   final GlobalKey container = GlobalKey();
   final GlobalKey globalKey =  GlobalKey();
   ScreenshotController screenshotController = ScreenshotController();
-  Timer timePrediction;
-  void timers() {
-    Timer.periodic(Duration(milliseconds: 10), (tim) {
-      setState(() {});
-      timePrediction = tim;
-    });
-  }
 
   @override
   void dispose() {
-    timePrediction.cancel();
-    imageEditorStepBloc.close();
+    _imageEditorStepBloc.close();
     super.dispose();
   }
 
@@ -97,8 +92,6 @@ class _TShirtEditorState extends State<TShirtEditor> {
     heightTextController =  TextEditingController(text: "$_editorBoxHeight");
     widthTextController=  TextEditingController(text: "$_editorBoxWidth");
 
-    timers();
-    _controller.clear();
     type.clear();
     fontSize.clear();
     offsets.clear();
@@ -118,6 +111,7 @@ class _TShirtEditorState extends State<TShirtEditor> {
   @override
   Widget build(BuildContext context) {
     ScreenUtil.init(context,);
+    final ValueNotifier<Matrix4> notifier = ValueNotifier(Matrix4.identity());
     return SafeArea(
       child: Scaffold(
         resizeToAvoidBottomPadding: false,
@@ -128,13 +122,19 @@ class _TShirtEditorState extends State<TShirtEditor> {
             child: Screenshot(
               controller: screenshotController,
               child: BlocBuilder(
-                cubit: imageEditorStepBloc,
+                cubit: _imageEditorStepBloc,
                   buildWhen: (c, p) => c != p,
                   builder: (context, state) {
                   if(state is ImageEditorFirstStepInitialState){
                     return InkWell(
                       onTap: (){
-                        openPhotoBottomSheets();
+                        openPhotoBottomSheets(
+                            (image, height, width)=>AddImageEvent(
+                              baseImage: image,
+                              height: height,
+                              width: width,
+                            )
+                        );
                       },
                       child: Container(
                         width: MediaQuery.of(context).size.width,
@@ -205,6 +205,68 @@ class _TShirtEditorState extends State<TShirtEditor> {
                           )),
                     );
                   }
+                  if(state is ImageLayerState){
+                    return Container(
+                      width: MediaQuery.of(context).size.width,
+                      height: MediaQuery.of(context).size.height,
+                      child: RepaintBoundary(
+                          key: globalKey,
+                          child: Stack(
+                            children: <Widget>[
+                              state.baseImage != null
+                                  ? InteractiveViewer(
+                                child: Image.file(
+                                state.baseImage,
+                                height: state.height.toDouble(),
+                                width: state.width.toDouble(),
+                                fit: BoxFit.contain,
+                              ),
+                                  )
+                                  : Container(),
+                              Align(
+                                alignment: Alignment.center,
+                                child: Container(
+                                  width: _editorBoxWidth,
+                                  height: _editorBoxHeight,
+                                  child: Stack(
+                                    children: [
+                                      Align(
+                                        alignment: Alignment.center,
+                                        child: Container(
+                                          width: _editorBoxWidth,
+                                          height: _editorBoxHeight,
+                                          decoration: BoxDecoration(
+                                              border: Border.all(color: Colors.black,width: 0.2,),
+                                          ),
+                                        ),
+                                      ),
+                                      MatrixGestureDetector(
+                                        onMatrixUpdate: (m, tm, sm, rm) {
+                                          notifier.value = m;
+                                        },
+                                        child: AnimatedBuilder(
+                                          animation: notifier,
+                                          builder: (ctx, child) {
+                                            return Transform(
+                                              transform: notifier.value,
+                                              child: Image.file(
+                                                state.layerImage,
+                                                width: _editorBoxWidth,
+                                                height: _editorBoxHeight,
+                                                fit: BoxFit.contain,
+                                              ),
+                                            );
+                                          }
+                                        ),
+                                      )
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )),
+                    );
+                  }
                   if(state is PaintImageState){
                     return Container(
                       width: MediaQuery.of(context).size.width,
@@ -236,7 +298,7 @@ class _TShirtEditorState extends State<TShirtEditor> {
                                           width: _editorBoxWidth,
                                           height: _editorBoxHeight,
                                           decoration: BoxDecoration(
-                                            border: Border.all(color: Colors.black,width: 0.2,),
+                                            border: Border.all(color: _borderBoxColor,width: 0.2,),
                                           ),
                                           child: GestureDetector(
                                             /// TODO not used !
@@ -369,7 +431,7 @@ class _TShirtEditorState extends State<TShirtEditor> {
                                           width: _editorBoxWidth,
                                           height: _editorBoxHeight,
                                           decoration: BoxDecoration(
-                                            border: Border.all(color: Colors.black,width: 0.2,),
+                                            border: Border.all(color: _borderBoxColor,width: 0.2,),
                                           ),
                                         ),
                                       ),
@@ -410,7 +472,13 @@ class _TShirtEditorState extends State<TShirtEditor> {
                   }
                   else return InkWell(
                     onTap: (){
-                      openPhotoBottomSheets();
+                      openPhotoBottomSheets(
+                              (image, height, width)=>AddImageEvent(
+                            baseImage: image,
+                            height: height,
+                            width: width,
+                          )
+                      );
                     },
                     child: Container(
                       width: MediaQuery.of(context).size.width,
@@ -444,18 +512,15 @@ class _TShirtEditorState extends State<TShirtEditor> {
           bottomNavigationBar: openBottomSheet
               ?  Container()
               : BlocBuilder(
-                cubit: imageEditorStepBloc,
+                cubit: _imageEditorStepBloc,
                 buildWhen: (c, p) => c != p,
                 builder: (context, state) {
                   if(state is ImageEditorFirstStepInitialState){
                     return Container(
-                      decoration: BoxDecoration(
-                          color: Colors.white,
-                          boxShadow: [BoxShadow(blurRadius: 4)]),
                       height: 0,
                     );
                   }
-                 else if(state is InsertImageState){
+                  else if(state is InsertImageState){
                     return Container(
                       decoration: BoxDecoration(
                           color: Colors.white,
@@ -487,6 +552,7 @@ class _TShirtEditorState extends State<TShirtEditor> {
                                         onPressed: () {
                                           setState(() => currentColor = pickerColor);
                                           Navigator.of(context).pop();
+                                          _imageEditorStepBloc.add(AddPainterImageEvent());
                                         },
                                       ),
                                     ],
@@ -503,7 +569,7 @@ class _TShirtEditorState extends State<TShirtEditor> {
                               if (value.toString().isEmpty) {
                                 print("true");
                               } else {
-                                imageEditorStepBloc.add(AddTextImageEvent());
+                                _imageEditorStepBloc.add(AddTextImageEvent());
                                 type.add(2);
                                 fontSize.add(20);
                                 offsets.add(Offset.zero);
@@ -536,6 +602,7 @@ class _TShirtEditorState extends State<TShirtEditor> {
                           BottomBarContainer(
                             icons: FontAwesomeIcons.smile,
                             onTap: () {
+                              _imageEditorStepBloc.add(AddEmojiImageEvent());
                               Future getemojis = showModalBottomSheet(
                                   context: context,
                                   builder: (BuildContext context) {
@@ -627,7 +694,14 @@ class _TShirtEditorState extends State<TShirtEditor> {
                           BottomBarContainer(
                             icons: Icons.camera,
                             onTap: (){
-                              openPhotoBottomSheets();
+                              openPhotoBottomSheets(
+                                  (image, height, width)=>
+                                  AddImageLayerEvent(
+                                    baseImage: image,
+                                    height: height,
+                                    width: width,
+                                  )
+                              );
                             },
                           ),
                           BottomBarContainer(
@@ -658,59 +732,18 @@ class _TShirtEditorState extends State<TShirtEditor> {
                       ),
                     );
                   }
-                  if(state is TextImageState){
-                    return Container(
-                      decoration: BoxDecoration(
-                          color: Colors.white,
-                          boxShadow: [BoxShadow(blurRadius: 4)]),
-                      height: 70,
-                      child:  Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: <Widget>[
-                          BottomBarContainer(
-                            icons: Icons.close,
-                            onTap: (){
-                              multiWidGet.clear();
-                              imageEditorStepBloc.add(ExitEditImageEvent());
-                            },
-                          ),
-                          BottomBarContainer(
-                            icons: Icons.assignment_turned_in_sharp,
-                            onTap: (){
-                              setState(() {
-                                _borderBoxColor = Colors.transparent;
-                              });
-                              File _imageFile;
-                              _imageFile = null;
-                              screenshotController
-                                  .capture(
-                                  delay: Duration(milliseconds: 500), pixelRatio: 1.5)
-                                  .then((File image) async {
-                                final _imageFromPicker = File(image.path);
-                                final decodedImage =
-                                await decodeImageFromList(
-                                    _imageFromPicker.readAsBytesSync());
-                                imageEditorStepBloc.add(
-                                    SaveEditImageEvent(
-                                      baseImage: image,
-                                      height: decodedImage.height,
-                                      width: decodedImage.width
-                                    )
-                                );
-                                multiWidGet.clear();
-                                setState(() {
-                                  _borderBoxColor = Colors.black;
-                                });
-                              }).catchError((onError) {
-                                ShowError.showCustomError(context, "onError");
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                    );
+                  else if(state is TextImageState){
+                    return _saveOrExitEditImage();
                   }
-                  if(state is EmojiImageState){}
+                  else if(state is EmojiImageState){
+                    return _saveOrExitEditImage();
+                  }
+                  else if(state is PaintImageState){
+                    return _saveOrExitEditImage();
+                  }
+                  else if(state is ImageLayerState){
+                    return _saveOrExitEditImage();
+                  }
                   return Container();
                 }
               )
@@ -718,7 +751,71 @@ class _TShirtEditorState extends State<TShirtEditor> {
     );
   }
 
-  void openPhotoBottomSheets() {
+  Container _saveOrExitEditImage(){
+    return Container(
+      decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [BoxShadow(blurRadius: 4)]),
+      height: 70,
+      child:  Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: <Widget>[
+          BottomBarContainer(
+            icons: Icons.close,
+            onTap: (){
+              _controller.clear();
+              type.clear();
+              fontSize.clear();
+              offsets.clear();
+              multiWidGet.clear();
+              howMuchWidgetIs = 0;
+              _imageEditorStepBloc.add(ExitEditImageEvent());
+            },
+          ),
+          BottomBarContainer(
+            icons: Icons.assignment_turned_in_sharp,
+            onTap: (){
+              setState(() {
+                _borderBoxColor = Colors.transparent;
+              });
+              screenshotController
+                  .capture(pixelRatio: 1.5)
+                  .then((File image) async {
+                final _imageFromPicker = File(image.path);
+                final decodedImage =
+                await decodeImageFromList(
+                    _imageFromPicker.readAsBytesSync());
+                _imageEditorStepBloc.add(
+                    SaveEditImageEvent(
+                        baseImage: image,
+                        height: decodedImage.height,
+                        width: decodedImage.width
+                    )
+                );
+                _controller.clear();
+                type.clear();
+                fontSize.clear();
+                offsets.clear();
+                multiWidGet.clear();
+                howMuchWidgetIs = 0;
+                setState(() {
+                  _borderBoxColor = Colors.black;
+                });
+              }).catchError((onError) {
+                ShowError.showCustomError(context, "onError");
+              });
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void openPhotoBottomSheets(ImageEditorStepEvent event(
+      File baseImage,
+      int height,
+      int width
+      )) {
     openBottomSheet = true;
     setState(() {});
     Future<void> future = showModalBottomSheet<void>(
@@ -758,13 +855,11 @@ class _TShirtEditorState extends State<TShirtEditor> {
                                   await decodeImageFromList(
                                       _imageFromPicker.readAsBytesSync());
                                   _controller.clear();
-                                  imageEditorStepBloc.add(
-                                    AddImageEvent(
-                                      baseImage: _imageFromPicker,
-                                      height: decodedImage.height,
-                                      width: decodedImage.width,
-                                    ),
-                                  );
+                                  _imageEditorStepBloc.add(event(
+                                    _imageFromPicker,
+                                    decodedImage.height,
+                                    decodedImage.width,
+                                  ));
                                 }
                                 Navigator.pop(context);
                               }),
@@ -788,13 +883,11 @@ class _TShirtEditorState extends State<TShirtEditor> {
                                   await decodeImageFromList(
                                       _imageFromPicker.readAsBytesSync());
                                   _controller.clear();
-                                  imageEditorStepBloc.add(
-                                      AddImageEvent(
-                                        baseImage: _imageFromPicker,
-                                        height: decodedImage.height,
-                                        width: decodedImage.width,
-                                      ),
-                                  );
+                                  _imageEditorStepBloc.add(event(
+                                    _imageFromPicker,
+                                    decodedImage.height,
+                                    decodedImage.width,
+                                  ));
                                 }
                                 Navigator.pop(context);
                               }),
@@ -813,6 +906,7 @@ class _TShirtEditorState extends State<TShirtEditor> {
     );
     future.then((void value) => _closeModal(value));
   }
+
 
   void _closeModal(void value) {
     openBottomSheet = false;

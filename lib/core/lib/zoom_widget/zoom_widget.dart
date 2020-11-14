@@ -67,6 +67,7 @@ class _ZoomState extends State<Zoom> with TickerProviderStateMixin {
   double doubleTapScale = 0.0;
   BoxConstraints globalConstraints;
 
+
   @override
   void initState() {
     scaleAnimation = AnimationController(

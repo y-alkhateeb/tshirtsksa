@@ -31,16 +31,13 @@ class ExitEditImageEvent extends ImageEditorStepEvent {
   List<Object> get props => [];
 }
 
-class SaveEditImageEvent extends ImageEditorStepEvent {
-  final File baseImage;
-  final int height;
-  final int width;
+class SaveEditImageEvent extends AddImageEvent {
 
   const SaveEditImageEvent({
-    @required this.baseImage,
-    @required this.height,
-    @required this.width,
-  });
+    @required File baseImage,
+    @required int height,
+    @required int width,
+  }) : super(baseImage: baseImage, width: width, height: height);
 
   @override
   List<Object> get props => [
@@ -51,7 +48,36 @@ class SaveEditImageEvent extends ImageEditorStepEvent {
 }
 
 class AddTextImageEvent extends ImageEditorStepEvent {
+  const AddTextImageEvent();
   @override
   List<Object> get props => [];
+}
 
+class AddEmojiImageEvent extends ImageEditorStepEvent {
+  const AddEmojiImageEvent();
+  @override
+  List<Object> get props => [];
+}
+
+class AddPainterImageEvent extends ImageEditorStepEvent {
+  const AddPainterImageEvent();
+  @override
+  List<Object> get props => [];
+}
+
+class AddImageLayerEvent extends ImageEditorStepEvent {
+  final File baseImage;
+  final int height;
+  final int width;
+  const AddImageLayerEvent({
+    @required this.baseImage,
+    @required this.height,
+    @required this.width,
+  });
+  @override
+  List<Object> get props => [
+    baseImage,
+    width,
+    height
+  ];
 }
