@@ -5,8 +5,8 @@ abstract class ImageEditorStepState extends Equatable {
 }
 
 /// First state of bloc
-class ImageEditorFirstStepInitialState extends ImageEditorStepState {
-  const ImageEditorFirstStepInitialState();
+class ImageEditorFirstStepInitialAddImageState extends ImageEditorStepState {
+  const ImageEditorFirstStepInitialAddImageState();
 
   @override
   List<Object> get props => [];

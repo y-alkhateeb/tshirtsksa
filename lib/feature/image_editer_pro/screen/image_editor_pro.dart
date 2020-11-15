@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -15,21 +14,18 @@ import 'package:tshirtsksa/core/common/dimens.dart';
 import 'package:tshirtsksa/core/common/gaps.dart';
 import 'package:tshirtsksa/core/ui/show_error.dart';
 import 'package:tshirtsksa/feature/image_editer_pro/bloc/image_editor_step_bloc.dart';
-import '../modules/all_emojies.dart';
-import '../modules/bottombar_container.dart';
-import '../modules/colors_picker.dart';
-import '../modules/text.dart';
+import 'package:tshirtsksa/feature/image_editer_pro/widget/all_emojies.dart';
+import 'package:tshirtsksa/feature/image_editer_pro/widget/bottombar_container.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:signature/signature.dart';
+import 'package:tshirtsksa/feature/image_editer_pro/widget/colors_picker.dart';
+import 'package:tshirtsksa/feature/image_editer_pro/widget/image_editor_first_step_inital_add_image_widget.dart';
+import 'package:tshirtsksa/feature/image_editer_pro/widget/image_editor_utils.dart';
+import 'package:tshirtsksa/feature/image_editer_pro/widget/text.dart';
 
 
-
-List fontSize = [];
-var howMuchWidgetIs = 0;
-List multiWidGet = [];
 Color currentColors = Colors.white;
-var opacity = 0.0;
 SignatureController _controller =
     SignatureController(penStrokeWidth: 5, penColor: Colors.green);
 
@@ -41,10 +37,11 @@ class TShirtEditor extends StatefulWidget {
 var slider = 0.0;
 
 class _TShirtEditorState extends State<TShirtEditor> {
-
-  ValueNotifier<Matrix4> notifier;
+  ImageEditorUtils utils;
+  String _textOrEmojiValue;
+  ValueNotifier<Matrix4> _valueNotifierForBorderBoxColor;
+  ValueNotifier<Color> _valueNotifierToScaleAndRotateWidget;
   final ImageEditorStepBloc _imageEditorStepBloc = ImageEditorStepBloc();
-  final imagePicker = ImagePicker();
   double _editorBoxWidth = 300;
   double _editorBoxHeight = 300;
 
@@ -55,8 +52,7 @@ class _TShirtEditorState extends State<TShirtEditor> {
   Color pickerColor = Color(0xff443a49);
   Color currentColor = Color(0xff443a49);
 
-  Color _borderBoxColor = Colors.black;
-
+  final int __textOrEmojiFontSize = 256;
 
 
 // ValueChanged<Color> callback
@@ -67,18 +63,8 @@ class _TShirtEditorState extends State<TShirtEditor> {
         SignatureController(penStrokeWidth: 5, penColor: color, points: points);
   }
 
-  List<Offset> offsets = [];
-  Offset offset1 = Offset.zero;
-  Offset offset2 = Offset.zero;
-  final scaf = GlobalKey<ScaffoldState>();
-  var openBottomSheet = false;
-  List<Offset> _points = <Offset>[];
-  List type = [];
-  List alignment = [];
 
-  final GlobalKey container = GlobalKey();
-  final GlobalKey globalKey =  GlobalKey();
-  ScreenshotController screenshotController = ScreenshotController();
+  final ScreenshotController screenshotController = ScreenshotController();
 
   @override
   void dispose() {
@@ -88,15 +74,12 @@ class _TShirtEditorState extends State<TShirtEditor> {
 
   @override
   void initState() {
+    utils = ImageEditorUtils(
+        context: context, imageEditorStepBloc: _imageEditorStepBloc);
     /// initialize height and width for edit box
     heightTextController =  TextEditingController(text: "$_editorBoxHeight");
     widthTextController=  TextEditingController(text: "$_editorBoxWidth");
-
-    type.clear();
-    fontSize.clear();
-    offsets.clear();
-    multiWidGet.clear();
-    howMuchWidgetIs = 0;
+    _textOrEmojiValue = "";
     super.initState();
   }
 
@@ -104,7 +87,8 @@ class _TShirtEditorState extends State<TShirtEditor> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    notifier = ValueNotifier(Matrix4.identity());
+    _valueNotifierForBorderBoxColor = ValueNotifier(Matrix4.identity());
+    _valueNotifierToScaleAndRotateWidget = ValueNotifier(Colors.black);
     _editorBoxHeight = MediaQuery.of(context).size.height/2.3;
     _editorBoxWidth = MediaQuery.of(context).size.width/2;
   }
@@ -117,7 +101,6 @@ class _TShirtEditorState extends State<TShirtEditor> {
         resizeToAvoidBottomPadding: false,
         resizeToAvoidBottomInset: false,
         backgroundColor: Colors.white,
-          key: scaf,
           body: Center(
             child: Screenshot(
               controller: screenshotController,
@@ -125,392 +108,291 @@ class _TShirtEditorState extends State<TShirtEditor> {
                 cubit: _imageEditorStepBloc,
                   buildWhen: (c, p) => c != p,
                   builder: (context, state) {
-                  if(state is ImageEditorFirstStepInitialState){
-                    return InkWell(
-                      onTap: (){
-                        openPhotoBottomSheetsToAddBaseImageOrSticker(
-                            (image, height, width)=>AddImageEvent(
-                              baseImage: image,
-                              height: height,
-                              width: width,
-                            )
-                        );
-                      },
-                      child: Container(
-                        width: MediaQuery.of(context).size.width,
-                        height: MediaQuery.of(context).size.height,
-                        color: Colors.white,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.add_a_photo_outlined,
-                              color: AppColors.primaryColorDark,
-                              size: MediaQuery.of(context).size.width/3,
-                            ),
-                            Gaps.vGap32,
-                            Text(
-                                "Tap anywhere to open a photo",
-                              style: TextStyle(
-                                color: AppColors.primaryColorDark,
-                                fontWeight: FontWeight.bold,
-                                fontSize: Dimens.font_sp24
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
+                  if(state is ImageEditorFirstStepInitialAddImageState){
+                    return ImageEditorFirstStepInitialAddImageWidget(imageEditorStepBloc: _imageEditorStepBloc,);
                   }
                   if(state is InsertImageState){
                     return Container(
                       width: MediaQuery.of(context).size.width,
                       height: MediaQuery.of(context).size.height,
-                      child: RepaintBoundary(
-                          key: globalKey,
-                          child: Stack(
-                            children: <Widget>[
-                              state.baseImage != null
-                                  ? InteractiveViewer(
-                                    child: Image.file(
-                                state.baseImage,
-                                height: state.height.toDouble(),
-                                width: state.width.toDouble(),
-                                fit: BoxFit.contain,
-                              ),
-                                  )
-                                  : Container(),
-                              Align(
-                                alignment: Alignment.center,
-                                child: Container(
-                                  width: _editorBoxWidth,
-                                  height: _editorBoxHeight,
-                                  child: Stack(
-                                    children: [
-                                      Align(
-                                        alignment: Alignment.center,
-                                        child: Container(
-                                          width: _editorBoxWidth,
-                                          height: _editorBoxHeight,
-                                          decoration: BoxDecoration(
-                                              border: Border.all(color: Colors.black,width: 0.2,),
-                                          ),
-                                        ),
+                      child: Stack(
+                        children: <Widget>[
+                          state.baseImage != null
+                              ? InteractiveViewer(
+                                child: Image.file(
+                            state.baseImage,
+                            height: state.height.toDouble(),
+                            width: state.width.toDouble(),
+                            fit: BoxFit.contain,
+                          ),
+                              )
+                              : Container(),
+                          Align(
+                            alignment: Alignment.center,
+                            child: Container(
+                              width: _editorBoxWidth,
+                              height: _editorBoxHeight,
+                              child: Stack(
+                                children: [
+                                  Align(
+                                    alignment: Alignment.center,
+                                    child: Container(
+                                      width: _editorBoxWidth,
+                                      height: _editorBoxHeight,
+                                      decoration: BoxDecoration(
+                                          border: Border.all(color: Colors.black,width: 0.2,),
                                       ),
-                                    ],
+                                    ),
                                   ),
-                                ),
+                                ],
                               ),
-                            ],
-                          )),
+                            ),
+                          ),
+                        ],
+                      ),
                     );
                   }
                   if(state is StickerImageState){
                     return Container(
                       width: MediaQuery.of(context).size.width,
                       height: MediaQuery.of(context).size.height,
-                      child: RepaintBoundary(
-                          key: globalKey,
-                          child: Stack(
-                            children: <Widget>[
-                              state.baseImage != null
-                                  ? InteractiveViewer(
-                                child: Image.file(
-                                state.baseImage,
-                                height: state.height.toDouble(),
-                                width: state.width.toDouble(),
-                                fit: BoxFit.contain,
-                              ),
-                                  )
-                                  : Container(),
-                              Align(
-                                alignment: Alignment.center,
-                                child: Container(
-                                  width: _editorBoxWidth,
-                                  height: _editorBoxHeight,
-                                  child: Stack(
-                                    children: [
-                                      Align(
-                                        alignment: Alignment.center,
-                                        child: Container(
-                                          width: _editorBoxWidth,
-                                          height: _editorBoxHeight,
-                                          decoration: BoxDecoration(
-                                              border: Border.all(color: Colors.black,width: 0.2,),
-                                          ),
-                                        ),
+                      child: Stack(
+                        children: <Widget>[
+                          state.baseImage != null
+                              ? InteractiveViewer(
+                            child: Image.file(
+                            state.baseImage,
+                            height: state.height.toDouble(),
+                            width: state.width.toDouble(),
+                            fit: BoxFit.contain,
+                          ),
+                              )
+                              : Container(),
+                          Align(
+                            alignment: Alignment.center,
+                            child: Container(
+                              width: _editorBoxWidth,
+                              height: _editorBoxHeight,
+                              child: Stack(
+                                children: [
+                                  Align(
+                                    alignment: Alignment.center,
+                                    child: Container(
+                                      width: _editorBoxWidth,
+                                      height: _editorBoxHeight,
+                                      decoration: BoxDecoration(
+                                          border: Border.all(color: _valueNotifierToScaleAndRotateWidget.value,width: 0.2,),
                                       ),
-                                      MatrixGestureDetector(
-                                        onMatrixUpdate: (m, tm, sm, rm) {
-                                          notifier.value = m;
-                                        },
-                                        child: AnimatedBuilder(
-                                          animation: notifier,
-                                          builder: (ctx, child) {
-                                            return Transform(
-                                              transform: notifier.value,
-                                              child: Image.file(
-                                                state.layerImage,
-                                                width: _editorBoxWidth,
-                                                height: _editorBoxHeight,
-                                                fit: BoxFit.contain,
-                                              ),
-                                            );
-                                          }
-                                        ),
-                                      )
-                                    ],
+                                    ),
                                   ),
-                                ),
+                                  MatrixGestureDetector(
+                                    onMatrixUpdate: (m, tm, sm, rm) {
+                                      _valueNotifierForBorderBoxColor.value = m;
+                                    },
+                                    child: AnimatedBuilder(
+                                      animation: _valueNotifierForBorderBoxColor,
+                                      builder: (ctx, child) {
+                                        return Transform(
+                                          transform: _valueNotifierForBorderBoxColor.value,
+                                          child: Image.file(
+                                            state.layerImage,
+                                            width: _editorBoxWidth,
+                                            height: _editorBoxHeight,
+                                            fit: BoxFit.contain,
+                                          ),
+                                        );
+                                      }
+                                    ),
+                                  )
+                                ],
                               ),
-                            ],
-                          )),
+                            ),
+                          ),
+                        ],
+                      ),
                     );
                   }
                   if(state is PaintImageState){
                     return Container(
                       width: MediaQuery.of(context).size.width,
                       height: MediaQuery.of(context).size.height,
-                      child: RepaintBoundary(
-                          key: globalKey,
-                          child: Stack(
-                            children: <Widget>[
-                              state.baseImage != null
-                                  ? InteractiveViewer(
-                                child: Image.file(
-                                  state.baseImage,
-                                  height: state.height.toDouble(),
-                                  width: state.width.toDouble(),
-                                  fit: BoxFit.contain,
-                                ),
-                              )
-                                  : Container(),
-                              Align(
-                                alignment: Alignment.center,
-                                child: Container(
-                                  width: _editorBoxWidth,
-                                  height: _editorBoxHeight,
-                                  child: Stack(
-                                    children: [
-                                      Align(
-                                        alignment: Alignment.center,
-                                        child: Container(
-                                          width: _editorBoxWidth,
-                                          height: _editorBoxHeight,
-                                          decoration: BoxDecoration(
-                                            border: Border.all(color: _borderBoxColor,width: 0.2,),
-                                          ),
-                                          child: GestureDetector(
-                                            /// TODO not used !
-                                            // onPanUpdate: (DragUpdateDetails details) {
-                                            //   setState(() {
-                                            //     RenderBox object = context.findRenderObject();
-                                            //     Offset _localPosition = object.globalToLocal(details.globalPosition);
-                                            //     _points =  List.from(_points)..add(_localPosition);
-                                            //   });
-                                            // },
-                                            // onPanEnd: (DragEndDetails details) {
-                                            //   _points.add(null);
-                                            // },
-                                            child: Painter(
-                                              editorBoxHeight: _editorBoxHeight,
-                                              editorBoxWidth: _editorBoxWidth,
-                                            ),
-                                          ),
-                                        ),
+                      child: Stack(
+                        children: <Widget>[
+                          state.baseImage != null
+                              ? InteractiveViewer(
+                            child: Image.file(
+                              state.baseImage,
+                              height: state.height.toDouble(),
+                              width: state.width.toDouble(),
+                              fit: BoxFit.contain,
+                            ),
+                          )
+                              : Container(),
+                          Align(
+                            alignment: Alignment.center,
+                            child: Container(
+                              width: _editorBoxWidth,
+                              height: _editorBoxHeight,
+                              child: Stack(
+                                children: [
+                                  Align(
+                                    alignment: Alignment.center,
+                                    child: Container(
+                                      width: _editorBoxWidth,
+                                      height: _editorBoxHeight,
+                                      decoration: BoxDecoration(
+                                        border: Border.all(color: _valueNotifierToScaleAndRotateWidget.value,width: 0.2,),
                                       ),
-                                    ],
+                                      child: Painter(
+                                        editorBoxHeight: _editorBoxHeight,
+                                        editorBoxWidth: _editorBoxWidth,
+                                      ),
+                                    ),
                                   ),
-                                ),
+                                ],
                               ),
-                            ],
-                          )),
+                            ),
+                          ),
+                        ],
+                      ),
                     );
                   }
                   if(state is TextImageState){
                     return Container(
                       width: MediaQuery.of(context).size.width,
                       height: MediaQuery.of(context).size.height,
-                      child: RepaintBoundary(
-                          key: globalKey,
-                          child: Stack(
-                            children: <Widget>[
-                              state.baseImage != null
-                                  ? InteractiveViewer(
-                                child: Image.file(
-                                  state.baseImage,
-                                  height: state.height.toDouble(),
-                                  width: state.width.toDouble(),
-                                  fit: BoxFit.contain,
-                                ),
-                              )
-                                  : Container(),
-                              Align(
-                                alignment: Alignment.center,
-                                child: Container(
-                                  width: _editorBoxWidth,
-                                  height: _editorBoxHeight,
-                                  child: Stack(
-                                    children: [
-                                      Align(
-                                        alignment: Alignment.center,
-                                        child: Container(
-                                          width: _editorBoxWidth,
-                                          height: _editorBoxHeight,
-                                          decoration: BoxDecoration(
-                                            border: Border.all(color: _borderBoxColor,width: 0.2,),
-                                          ),
-                                        ),
+                      child: Stack(
+                        children: <Widget>[
+                          state.baseImage != null
+                              ? InteractiveViewer(
+                            child: Image.file(
+                              state.baseImage,
+                              height: state.height.toDouble(),
+                              width: state.width.toDouble(),
+                              fit: BoxFit.contain,
+                            ),
+                          )
+                              : Container(),
+                          Align(
+                            alignment: Alignment.center,
+                            child: Container(
+                              width: _editorBoxWidth,
+                              height: _editorBoxHeight,
+                              child: Stack(
+                                children: [
+                                  Align(
+                                    alignment: Alignment.center,
+                                    child: Container(
+                                      width: _editorBoxWidth,
+                                      height: _editorBoxHeight,
+                                      decoration: BoxDecoration(
+                                        border: Border.all(color: _valueNotifierToScaleAndRotateWidget.value,width: 0.2,),
                                       ),
-                                      Stack(
-                                        children: multiWidGet.asMap().entries.map((f) {
-                                          return MatrixGestureDetector(
-                                            onMatrixUpdate: (m, tm, sm, rm) {
-                                              notifier.value = m;
-                                            },
-                                            child: AnimatedBuilder(
-                                                animation: notifier,
-                                                builder: (ctx, child) {
-                                                  return Transform(
-                                                    transform: notifier.value,
-                                                    child: Container(
-                                                      width: _editorBoxWidth,
-                                                      height: _editorBoxHeight,
-                                                      child: Text("${ f.value}",
-                                                          textAlign: TextAlign.center,
-                                                          style: TextStyle(
-                                                            fontSize: ScreenUtil().setSp(128),
-                                                          )),
-                                                    ),
-                                                  );
-                                                }
+                                    ),
+                                  ),
+                                  MatrixGestureDetector(
+                                    onMatrixUpdate: (m, tm, sm, rm) {
+                                      _valueNotifierForBorderBoxColor.value = m;
+                                    },
+                                    child: AnimatedBuilder(
+                                        animation: _valueNotifierForBorderBoxColor,
+                                        builder: (ctx, child) {
+                                          return Transform(
+                                            transform: _valueNotifierForBorderBoxColor.value,
+                                            child: Container(
+                                              width: _editorBoxWidth,
+                                              height: _editorBoxHeight,
+                                              child: Text("$_textOrEmojiValue",
+                                                  textAlign: TextAlign.center,
+                                                  style: TextStyle(
+                                                    fontSize: ScreenUtil().setSp(__textOrEmojiFontSize),
+                                                  )),
                                             ),
                                           );
-                                        }).toList(),
-                                      )
-                                    ],
-                                  ),
-                                ),
+                                        }
+                                    ),
+                                  )
+                                ],
                               ),
-                            ],
-                          )),
+                            ),
+                          ),
+                        ],
+                      ),
                     );
                   }
                   if(state is EmojiImageState){
                     return Container(
                       width: MediaQuery.of(context).size.width,
                       height: MediaQuery.of(context).size.height,
-                      child: RepaintBoundary(
-                          key: globalKey,
-                          child: Stack(
-                            children: <Widget>[
-                              state.baseImage != null
-                                  ? InteractiveViewer(
-                                child: Image.file(
-                                  state.baseImage,
-                                  height: state.height.toDouble(),
-                                  width: state.width.toDouble(),
-                                  fit: BoxFit.contain,
-                                ),
-                              )
-                                  : Container(),
-                              Align(
-                                alignment: Alignment.center,
-                                child: Container(
-                                  width: _editorBoxWidth,
-                                  height: _editorBoxHeight,
-                                  child: Stack(
-                                    children: [
-                                      Align(
-                                        alignment: Alignment.center,
-                                        child: Container(
-                                          width: _editorBoxWidth,
-                                          height: _editorBoxHeight,
-                                          decoration: BoxDecoration(
-                                            border: Border.all(color: _borderBoxColor,width: 0.2,),
-                                          ),
-                                        ),
+                      child: Stack(
+                        children: <Widget>[
+                          state.baseImage != null
+                              ? InteractiveViewer(
+                            child: Image.file(
+                              state.baseImage,
+                              height: state.height.toDouble(),
+                              width: state.width.toDouble(),
+                              fit: BoxFit.contain,
+                            ),
+                          )
+                              : Container(),
+                          Align(
+                            alignment: Alignment.center,
+                            child: Container(
+                              width: _editorBoxWidth,
+                              height: _editorBoxHeight,
+                              child: Stack(
+                                children: [
+                                  Align(
+                                    alignment: Alignment.center,
+                                    child: Container(
+                                      width: _editorBoxWidth,
+                                      height: _editorBoxHeight,
+                                      decoration: BoxDecoration(
+                                        border: Border.all(color: _valueNotifierToScaleAndRotateWidget.value,width: 0.2,),
                                       ),
-                                      Stack(
-                                        children: multiWidGet.asMap().entries.map((f) {
-                                          return MatrixGestureDetector(
-                                            onMatrixUpdate: (m, tm, sm, rm) {
-                                              notifier.value = m;
-                                            },
-                                            child: AnimatedBuilder(
-                                                animation: notifier,
-                                                builder: (ctx, child) {
-                                                return Transform(
-                                                  transform: notifier.value,
-                                                  child: Container(
-                                                    width: _editorBoxWidth,
-                                                    height: _editorBoxHeight,
-                                                    child: Text("${f.value}",
-                                                        textAlign: TextAlign.center,
-                                                        style: TextStyle(
-                                                          fontSize: ScreenUtil().setSp(128),
-                                                        )),
-                                                  ),
-                                                );
-                                              }
+                                    ),
+                                  ),
+                                  MatrixGestureDetector(
+                                    onMatrixUpdate: (m, tm, sm, rm) {
+                                      _valueNotifierForBorderBoxColor.value = m;
+                                    },
+                                    child: AnimatedBuilder(
+                                        animation: _valueNotifierForBorderBoxColor,
+                                        builder: (ctx, child) {
+                                          return Transform(
+                                            transform: _valueNotifierForBorderBoxColor.value,
+                                            child: Container(
+                                              width: _editorBoxWidth,
+                                              height: _editorBoxHeight,
+                                              child: Text("$_textOrEmojiValue",
+                                                  textAlign: TextAlign.center,
+                                                  style: TextStyle(
+                                                    fontSize: ScreenUtil().setSp(__textOrEmojiFontSize),
+                                                  )),
                                             ),
                                           );
-                                        }).toList(),
-                                      )
-                                    ],
+                                        }
+                                    ),
                                   ),
-                                ),
+                                ],
                               ),
-                            ],
-                          )),
-                    );
-                  }
-                  else return InkWell(
-                    onTap: (){
-                      openPhotoBottomSheetsToAddBaseImageOrSticker(
-                              (image, height, width)=>AddImageEvent(
-                            baseImage: image,
-                            height: height,
-                            width: width,
-                          )
-                      );
-                    },
-                    child: Container(
-                      width: MediaQuery.of(context).size.width,
-                      height: MediaQuery.of(context).size.height,
-                      color: Colors.white,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.add_a_photo_outlined,
-                            color: AppColors.primaryColorDark,
-                            size: MediaQuery.of(context).size.width/3,
-                          ),
-                          Gaps.vGap32,
-                          Text(
-                            "Tap anywhere to open a photo",
-                            style: TextStyle(
-                                color: AppColors.primaryColorDark,
-                                fontWeight: FontWeight.bold,
-                                fontSize: Dimens.font_sp24
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  );
+                    );
+                  }
+                  else return ImageEditorFirstStepInitialAddImageWidget(imageEditorStepBloc: _imageEditorStepBloc,);
                 }
               ),
             ),
           ),
-          bottomNavigationBar: openBottomSheet
-              ?  Container()
-              : BlocBuilder(
+          bottomNavigationBar: BlocBuilder(
                 cubit: _imageEditorStepBloc,
                 buildWhen: (c, p) => c != p,
                 builder: (context, state) {
-                  if(state is ImageEditorFirstStepInitialState){
+                  if(state is ImageEditorFirstStepInitialAddImageState){
                     return Container(
                       height: 0,
                     );
@@ -520,8 +402,9 @@ class _TShirtEditorState extends State<TShirtEditor> {
                       decoration: BoxDecoration(
                           color: Colors.white,
                           boxShadow: [BoxShadow(blurRadius: 4)]),
-                      height: 70,
-                      child:  ListView(
+                      height: kToolbarHeight,
+                      child: ListView(
+                        physics: const BouncingScrollPhysics(),
                         scrollDirection: Axis.horizontal,
                         children: <Widget>[
                           BottomBarContainer(
@@ -565,11 +448,7 @@ class _TShirtEditorState extends State<TShirtEditor> {
                                 print("true");
                               } else {
                                 _imageEditorStepBloc.add(AddTextImageEvent());
-                                type.add(2);
-                                fontSize.add(20);
-                                offsets.add(Offset.zero);
-                                multiWidGet.add(value);
-                                howMuchWidgetIs++;
+                                _textOrEmojiValue = value;
                               }
                             },
                           ),
@@ -577,11 +456,7 @@ class _TShirtEditorState extends State<TShirtEditor> {
                             icons: FontAwesomeIcons.eraser,
                             onTap: () {
                               _controller.clear();
-                              type.clear();
-                              fontSize.clear();
-                              offsets.clear();
-                              multiWidGet.clear();
-                              howMuchWidgetIs = 0;
+                              _textOrEmojiValue = "";
                             },
                           ),
                           BottomBarContainer(
@@ -606,11 +481,7 @@ class _TShirtEditorState extends State<TShirtEditor> {
                               getemojis.then((value) {
                                 if (value != null) {
                                   setState(() {
-                                    type.add(1);
-                                    fontSize.add(20);
-                                    offsets.add(Offset.zero);
-                                    multiWidGet.add(value);
-                                    howMuchWidgetIs++;
+                                    _textOrEmojiValue = value;
                                   });
                                 }
                               });
@@ -691,7 +562,7 @@ class _TShirtEditorState extends State<TShirtEditor> {
                           BottomBarContainer(
                             icons: Icons.camera,
                             onTap: (){
-                              openPhotoBottomSheetsToAddBaseImageOrSticker(
+                              utils.openPhotoBottomSheetsToAddBaseImageOrSticker(
                                   (image, height, width)=>
                                   AddStickerLayerEvent(
                                     baseImage: image,
@@ -748,6 +619,8 @@ class _TShirtEditorState extends State<TShirtEditor> {
     );
   }
 
+
+
   Container _saveOrExitEditImage(){
     return Container(
       decoration: BoxDecoration(
@@ -761,11 +634,8 @@ class _TShirtEditorState extends State<TShirtEditor> {
             icons: Icons.close,
             onTap: (){
               _controller.clear();
-              type.clear();
-              fontSize.clear();
-              offsets.clear();
-              multiWidGet.clear();
-              howMuchWidgetIs = 0;
+              _textOrEmojiValue = "";
+              _valueNotifierForBorderBoxColor = ValueNotifier(Matrix4.identity());
               _imageEditorStepBloc.add(ExitEditImageEvent());
             },
           ),
@@ -773,7 +643,7 @@ class _TShirtEditorState extends State<TShirtEditor> {
             icons: Icons.assignment_turned_in_sharp,
             onTap: (){
               setState(() {
-                _borderBoxColor = Colors.transparent;
+                _valueNotifierToScaleAndRotateWidget.value = Colors.transparent;
               });
               screenshotController
                   .capture(pixelRatio: 1.5)
@@ -790,14 +660,9 @@ class _TShirtEditorState extends State<TShirtEditor> {
                     )
                 );
                 _controller.clear();
-                type.clear();
-                fontSize.clear();
-                offsets.clear();
-                multiWidGet.clear();
-                howMuchWidgetIs = 0;
-                setState(() {
-                  _borderBoxColor = Colors.black;
-                });
+                _textOrEmojiValue = "";
+                _valueNotifierForBorderBoxColor = ValueNotifier(Matrix4.identity());
+                _valueNotifierToScaleAndRotateWidget.value = Colors.black;
               }).catchError((onError) {
                 ShowError.showCustomError(context, "onError");
               });
@@ -808,107 +673,6 @@ class _TShirtEditorState extends State<TShirtEditor> {
     );
   }
 
-  void openPhotoBottomSheetsToAddBaseImageOrSticker(ImageEditorStepEvent event(
-      File baseImage,
-      int height,
-      int width
-      )) {
-    openBottomSheet = true;
-    setState(() {});
-    Future<void> future = showModalBottomSheet<void>(
-      context: context,
-      builder: (BuildContext context) {
-        return  Container(
-          decoration: BoxDecoration(color: Colors.white, boxShadow: [
-            BoxShadow(blurRadius: 10.9, color: Colors.grey[400])
-          ]),
-          height: 170,
-          child:  Column(
-            children: <Widget>[
-              Padding(
-                padding: const EdgeInsets.all(20.0),
-                child:  Text("Select Image Options"),
-              ),
-              Divider(
-                height: 1,
-              ),
-               Container(
-                padding: EdgeInsets.all(20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: <Widget>[
-                    Container(
-                      child: Column(
-                        children: <Widget>[
-                          IconButton(
-                              icon: Icon(Icons.photo_library),
-                              onPressed: () async {
-                                final pickedFile = await imagePicker.getImage(
-                                    source: ImageSource.gallery);
-                                if (pickedFile != null) {
-                                  final _imageFromPicker = File(pickedFile.path);
-                                  var decodedImage =
-                                  await decodeImageFromList(
-                                      _imageFromPicker.readAsBytesSync());
-                                  _controller.clear();
-                                  _imageEditorStepBloc.add(event(
-                                    _imageFromPicker,
-                                    decodedImage.height,
-                                    decodedImage.width,
-                                  ));
-                                }
-                                Navigator.pop(context);
-                              }),
-                          SizedBox(width: 10),
-                          Text("Open Gallery")
-                        ],
-                      ),
-                    ),
-                    SizedBox(width: 24),
-                    Container(
-                      child: Column(
-                        children: <Widget>[
-                          IconButton(
-                              icon: Icon(Icons.camera_alt),
-                              onPressed: () async {
-                                final pickedFile = await imagePicker.getImage(
-                                    source: ImageSource.camera);
-                                if (pickedFile != null) {
-                                  final _imageFromPicker = File(pickedFile.path);
-                                  var decodedImage =
-                                  await decodeImageFromList(
-                                      _imageFromPicker.readAsBytesSync());
-                                  _controller.clear();
-                                  _imageEditorStepBloc.add(event(
-                                    _imageFromPicker,
-                                    decodedImage.height,
-                                    decodedImage.width,
-                                  ));
-                                }
-                                Navigator.pop(context);
-                              }),
-                          SizedBox(width: 10),
-                          Text("Open Camera")
-                        ],
-                      ),
-                    )
-                  ],
-                ),
-              )
-            ],
-          ),
-        );
-      },
-    );
-    future.then((void value) => _closeModal(value));
-  }
-
-
-  void _closeModal(void value) {
-    openBottomSheet = false;
-    setState(() {});
-  }
 }
 
 class Painter extends StatefulWidget {
@@ -942,54 +706,6 @@ class _PainterState extends State<Painter> {
   }
 }
 
-class Sliders extends StatefulWidget {
-  final int size;
-  final sizevalue;
-  const Sliders({Key key, this.size, this.sizevalue}) : super(key: key);
-  @override
-  _SlidersState createState() => _SlidersState();
-}
-
-class _SlidersState extends State<Sliders> {
-  @override
-  void initState() {
-    slider = widget.sizevalue;
-    super.initState();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-        height: 120,
-        child: Column(
-          children: <Widget>[
-            Padding(
-              padding: const EdgeInsets.all(20.0),
-              child:  Text("Slider Size"),
-            ),
-            Divider(
-              height: 1,
-            ),
-             Slider(
-                value: slider,
-                min: 0.0,
-                max: 100.0,
-                onChangeEnd: (v) {
-                  setState(() {
-                    fontSize[widget.size] = v.toInt();
-                  });
-                },
-                onChanged: (v) {
-                  setState(() {
-                    slider = v;
-                    print(v.toInt());
-                    fontSize[widget.size] = v.toInt();
-                  });
-                }),
-          ],
-        ));
-  }
-}
 
 class ColorPiskersSlider extends StatefulWidget {
   @override
