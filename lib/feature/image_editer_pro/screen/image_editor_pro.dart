@@ -18,9 +18,7 @@ import 'package:tshirtsksa/feature/image_editer_pro/bloc/image_editor_step_bloc.
 import '../modules/all_emojies.dart';
 import '../modules/bottombar_container.dart';
 import '../modules/colors_picker.dart';
-import '../modules/emoji.dart';
 import '../modules/text.dart';
-import '../modules/textview.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:signature/signature.dart';
@@ -43,6 +41,8 @@ class TShirtEditor extends StatefulWidget {
 var slider = 0.0;
 
 class _TShirtEditorState extends State<TShirtEditor> {
+
+  ValueNotifier<Matrix4> notifier;
   final ImageEditorStepBloc _imageEditorStepBloc = ImageEditorStepBloc();
   final imagePicker = ImagePicker();
   double _editorBoxWidth = 300;
@@ -104,6 +104,7 @@ class _TShirtEditorState extends State<TShirtEditor> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    notifier = ValueNotifier(Matrix4.identity());
     _editorBoxHeight = MediaQuery.of(context).size.height/2.3;
     _editorBoxWidth = MediaQuery.of(context).size.width/2;
   }
@@ -111,7 +112,6 @@ class _TShirtEditorState extends State<TShirtEditor> {
   @override
   Widget build(BuildContext context) {
     ScreenUtil.init(context,);
-    final ValueNotifier<Matrix4> notifier = ValueNotifier(Matrix4.identity());
     return SafeArea(
       child: Scaffold(
         resizeToAvoidBottomPadding: false,
@@ -128,7 +128,7 @@ class _TShirtEditorState extends State<TShirtEditor> {
                   if(state is ImageEditorFirstStepInitialState){
                     return InkWell(
                       onTap: (){
-                        openPhotoBottomSheets(
+                        openPhotoBottomSheetsToAddBaseImageOrSticker(
                             (image, height, width)=>AddImageEvent(
                               baseImage: image,
                               height: height,
@@ -205,7 +205,7 @@ class _TShirtEditorState extends State<TShirtEditor> {
                           )),
                     );
                   }
-                  if(state is ImageLayerState){
+                  if(state is StickerImageState){
                     return Container(
                       width: MediaQuery.of(context).size.width,
                       height: MediaQuery.of(context).size.height,
@@ -364,31 +364,27 @@ class _TShirtEditorState extends State<TShirtEditor> {
                                       ),
                                       Stack(
                                         children: multiWidGet.asMap().entries.map((f) {
-                                          return TextView(
-                                            left: offsets[f.key].dx,
-                                            top: offsets[f.key].dy,
-                                            ontap: () {
-                                              scaf.currentState
-                                                  .showBottomSheet((context) {
-                                                return Sliders(
-                                                  size: f.key,
-                                                  sizevalue:
-                                                  fontSize[f.key].toDouble(),
-                                                );
-                                              });
+                                          return MatrixGestureDetector(
+                                            onMatrixUpdate: (m, tm, sm, rm) {
+                                              notifier.value = m;
                                             },
-                                            onpanupdate: (details) {
-                                              setState(() {
-                                                offsets[f.key] = Offset(
-                                                    offsets[f.key].dx +
-                                                        details.delta.dx,
-                                                    offsets[f.key].dy +
-                                                        details.delta.dy);
-                                              });
-                                            },
-                                            value: f.value.toString(),
-                                            fontsize: fontSize[f.key].toDouble(),
-                                            align: TextAlign.center,
+                                            child: AnimatedBuilder(
+                                                animation: notifier,
+                                                builder: (ctx, child) {
+                                                  return Transform(
+                                                    transform: notifier.value,
+                                                    child: Container(
+                                                      width: _editorBoxWidth,
+                                                      height: _editorBoxHeight,
+                                                      child: Text("${ f.value}",
+                                                          textAlign: TextAlign.center,
+                                                          style: TextStyle(
+                                                            fontSize: ScreenUtil().setSp(128),
+                                                          )),
+                                                    ),
+                                                  );
+                                                }
+                                            ),
                                           );
                                         }).toList(),
                                       )
@@ -437,28 +433,27 @@ class _TShirtEditorState extends State<TShirtEditor> {
                                       ),
                                       Stack(
                                         children: multiWidGet.asMap().entries.map((f) {
-                                          return EmojiView(
-                                            left: offsets[f.key].dx,
-                                            top: offsets[f.key].dy,
-                                            ontap: () {
-                                              scaf.currentState
-                                                  .showBottomSheet((context) {
-                                                return Sliders(
-                                                  size: f.key,
-                                                  sizevalue: fontSize[f.key].toDouble(),
+                                          return MatrixGestureDetector(
+                                            onMatrixUpdate: (m, tm, sm, rm) {
+                                              notifier.value = m;
+                                            },
+                                            child: AnimatedBuilder(
+                                                animation: notifier,
+                                                builder: (ctx, child) {
+                                                return Transform(
+                                                  transform: notifier.value,
+                                                  child: Container(
+                                                    width: _editorBoxWidth,
+                                                    height: _editorBoxHeight,
+                                                    child: Text("${f.value}",
+                                                        textAlign: TextAlign.center,
+                                                        style: TextStyle(
+                                                          fontSize: ScreenUtil().setSp(128),
+                                                        )),
+                                                  ),
                                                 );
-                                              });
-                                            },
-                                            onpanupdate: (details) {
-                                              setState(() {
-                                                offsets[f.key] = Offset(
-                                                    offsets[f.key].dx + details.delta.dx,
-                                                    offsets[f.key].dy + details.delta.dy);
-                                              });
-                                            },
-                                            value: f.value.toString(),
-                                            fontsize: fontSize[f.key].toDouble(),
-                                            align: TextAlign.center,
+                                              }
+                                            ),
                                           );
                                         }).toList(),
                                       )
@@ -472,7 +467,7 @@ class _TShirtEditorState extends State<TShirtEditor> {
                   }
                   else return InkWell(
                     onTap: (){
-                      openPhotoBottomSheets(
+                      openPhotoBottomSheetsToAddBaseImageOrSticker(
                               (image, height, width)=>AddImageEvent(
                             baseImage: image,
                             height: height,
@@ -610,11 +605,13 @@ class _TShirtEditorState extends State<TShirtEditor> {
                                   });
                               getemojis.then((value) {
                                 if (value != null) {
-                                  type.add(1);
-                                  fontSize.add(20);
-                                  offsets.add(Offset.zero);
-                                  multiWidGet.add(value);
-                                  howMuchWidgetIs++;
+                                  setState(() {
+                                    type.add(1);
+                                    fontSize.add(20);
+                                    offsets.add(Offset.zero);
+                                    multiWidGet.add(value);
+                                    howMuchWidgetIs++;
+                                  });
                                 }
                               });
                             },
@@ -694,9 +691,9 @@ class _TShirtEditorState extends State<TShirtEditor> {
                           BottomBarContainer(
                             icons: Icons.camera,
                             onTap: (){
-                              openPhotoBottomSheets(
+                              openPhotoBottomSheetsToAddBaseImageOrSticker(
                                   (image, height, width)=>
-                                  AddImageLayerEvent(
+                                  AddStickerLayerEvent(
                                     baseImage: image,
                                     height: height,
                                     width: width,
@@ -741,7 +738,7 @@ class _TShirtEditorState extends State<TShirtEditor> {
                   else if(state is PaintImageState){
                     return _saveOrExitEditImage();
                   }
-                  else if(state is ImageLayerState){
+                  else if(state is StickerImageState){
                     return _saveOrExitEditImage();
                   }
                   return Container();
@@ -811,7 +808,7 @@ class _TShirtEditorState extends State<TShirtEditor> {
     );
   }
 
-  void openPhotoBottomSheets(ImageEditorStepEvent event(
+  void openPhotoBottomSheetsToAddBaseImageOrSticker(ImageEditorStepEvent event(
       File baseImage,
       int height,
       int width

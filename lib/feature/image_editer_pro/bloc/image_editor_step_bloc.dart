@@ -69,8 +69,8 @@ class ImageEditorStepBloc
         width: _width,
       );
     }
-    else if(event is AddImageLayerEvent){
-      yield ImageLayerState(
+    else if(event is AddStickerLayerEvent){
+      yield StickerImageState(
         layerImage: event.baseImage,
         baseImage: _listOfEditingImage.last,
         height: _height,

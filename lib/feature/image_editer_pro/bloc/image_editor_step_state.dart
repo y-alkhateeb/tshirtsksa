@@ -91,13 +91,13 @@ class TextImageState extends ImageEditorStepState{
   ];
 }
 
-class ImageLayerState extends ImageEditorStepState{
+class StickerImageState extends ImageEditorStepState{
   final File baseImage;
   final int height;
   final int width;
   final File layerImage;
 
-  const ImageLayerState({
+  const StickerImageState({
     @required this.layerImage,
     @required this.baseImage,
     @required this.height,

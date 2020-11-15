@@ -65,11 +65,11 @@ class AddPainterImageEvent extends ImageEditorStepEvent {
   List<Object> get props => [];
 }
 
-class AddImageLayerEvent extends ImageEditorStepEvent {
+class AddStickerLayerEvent extends ImageEditorStepEvent {
   final File baseImage;
   final int height;
   final int width;
-  const AddImageLayerEvent({
+  const AddStickerLayerEvent({
     @required this.baseImage,
     @required this.height,
     @required this.width,
