@@ -2,16 +2,14 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:gallery_saver/gallery_saver.dart';
 import 'package:matrix_gesture_detector/matrix_gesture_detector.dart';
-import 'package:tshirtsksa/core/common/app_colors.dart';
-import 'package:tshirtsksa/core/common/dimens.dart';
-import 'package:tshirtsksa/core/common/gaps.dart';
 import 'package:tshirtsksa/core/ui/show_error.dart';
 import 'package:tshirtsksa/feature/image_editer_pro/bloc/image_editor_step_bloc.dart';
 import 'package:tshirtsksa/feature/image_editer_pro/widget/all_emojies.dart';
@@ -22,10 +20,9 @@ import 'package:signature/signature.dart';
 import 'package:tshirtsksa/feature/image_editer_pro/widget/colors_picker.dart';
 import 'package:tshirtsksa/feature/image_editer_pro/widget/image_editor_first_step_inital_add_image_widget.dart';
 import 'package:tshirtsksa/feature/image_editer_pro/widget/image_editor_utils.dart';
-import 'package:tshirtsksa/feature/image_editer_pro/widget/text.dart';
+import 'package:tshirtsksa/feature/image_editer_pro/widget/view_save_image.dart';
 
 
-Color currentColors = Colors.white;
 SignatureController _controller =
     SignatureController(penStrokeWidth: 5, penColor: Colors.green);
 
@@ -34,13 +31,15 @@ class TShirtEditor extends StatefulWidget {
   _TShirtEditorState createState() => _TShirtEditorState();
 }
 
-var slider = 0.0;
-
 class _TShirtEditorState extends State<TShirtEditor> {
+  /// Controls whether this widget has keyboard focus.
+  final FocusNode textFocusNode = FocusNode();
   ImageEditorUtils utils;
   String _textOrEmojiValue;
   ValueNotifier<Matrix4> _valueNotifierForBorderBoxColor;
   ValueNotifier<Color> _valueNotifierToScaleAndRotateWidget;
+  ValueNotifier<Color> _valueNotifierToSetTextColor;
+  ValueNotifier<bool> _valueNotifierToSetTextBackgroundFilled;
   final ImageEditorStepBloc _imageEditorStepBloc = ImageEditorStepBloc();
   double _editorBoxWidth = 300;
   double _editorBoxHeight = 300;
@@ -50,9 +49,8 @@ class _TShirtEditorState extends State<TShirtEditor> {
 
   // create some values
   Color pickerColor = Color(0xff443a49);
-  Color currentColor = Color(0xff443a49);
 
-  final int __textOrEmojiFontSize = 256;
+  final int _emojiFontSize = 256;
 
 
 // ValueChanged<Color> callback
@@ -69,6 +67,13 @@ class _TShirtEditorState extends State<TShirtEditor> {
   @override
   void dispose() {
     _imageEditorStepBloc.close();
+    textFocusNode.dispose();
+    heightTextController.dispose();
+    widthTextController.dispose();
+    _valueNotifierForBorderBoxColor.dispose();
+    _valueNotifierToScaleAndRotateWidget.dispose();
+    _valueNotifierToSetTextBackgroundFilled.dispose();
+    _valueNotifierToSetTextColor.dispose();
     super.dispose();
   }
 
@@ -80,17 +85,17 @@ class _TShirtEditorState extends State<TShirtEditor> {
     heightTextController =  TextEditingController(text: "$_editorBoxHeight");
     widthTextController=  TextEditingController(text: "$_editorBoxWidth");
     _textOrEmojiValue = "";
-    super.initState();
-  }
-
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
     _valueNotifierForBorderBoxColor = ValueNotifier(Matrix4.identity());
     _valueNotifierToScaleAndRotateWidget = ValueNotifier(Colors.black);
+    _valueNotifierToSetTextBackgroundFilled = ValueNotifier(false);
+    _valueNotifierToSetTextColor = ValueNotifier(Colors.black);
+    super.initState();
+  }
+  @override
+  void didChangeDependencies() {
     _editorBoxHeight = MediaQuery.of(context).size.height/2.3;
     _editorBoxWidth = MediaQuery.of(context).size.width/2;
+    super.didChangeDependencies();
   }
 
   @override
@@ -258,6 +263,9 @@ class _TShirtEditorState extends State<TShirtEditor> {
                     );
                   }
                   if(state is TextImageState){
+                    if(MediaQuery.of(context).viewInsets.bottom == 0){
+                      textFocusNode.unfocus();
+                    }
                     return Container(
                       width: MediaQuery.of(context).size.width,
                       height: MediaQuery.of(context).size.height,
@@ -300,13 +308,35 @@ class _TShirtEditorState extends State<TShirtEditor> {
                                           return Transform(
                                             transform: _valueNotifierForBorderBoxColor.value,
                                             child: Container(
-                                              width: _editorBoxWidth,
-                                              height: _editorBoxHeight,
-                                              child: Text("$_textOrEmojiValue",
-                                                  textAlign: TextAlign.center,
-                                                  style: TextStyle(
-                                                    fontSize: ScreenUtil().setSp(__textOrEmojiFontSize),
-                                                  )),
+                                                width: _editorBoxWidth,
+                                                height: _editorBoxHeight,
+                                              child: TextFormField(
+                                                focusNode: textFocusNode,
+                                                cursorColor: _valueNotifierToSetTextColor.value,
+                                                cursorWidth: 1,
+                                                maxLines: 10,
+                                                autofocus: true,
+                                                keyboardType: TextInputType.multiline,
+                                                textInputAction: TextInputAction.newline,
+                                                decoration: new InputDecoration(
+                                                    border: InputBorder.none,
+                                                    focusedBorder: InputBorder.none,
+                                                    enabledBorder: InputBorder.none,
+                                                    errorBorder: InputBorder.none,
+                                                    disabledBorder: InputBorder.none,
+                                                ),
+                                                onFieldSubmitted: (v){
+                                                  print("onEditingComplete");
+                                                },
+                                                style: TextStyle(
+                                                  color: _valueNotifierToSetTextColor.value,
+                                                  decorationThickness: 0.001,
+                                                  background: Paint()..color =
+                                                      _valueNotifierToSetTextBackgroundFilled.value== true
+                                                          ? Colors.white :
+                                                      Colors.transparent
+                                                ),
+                                              )
                                             ),
                                           );
                                         }
@@ -368,7 +398,7 @@ class _TShirtEditorState extends State<TShirtEditor> {
                                               child: Text("$_textOrEmojiValue",
                                                   textAlign: TextAlign.center,
                                                   style: TextStyle(
-                                                    fontSize: ScreenUtil().setSp(__textOrEmojiFontSize),
+                                                    fontSize: ScreenUtil().setSp(_emojiFontSize),
                                                   )),
                                             ),
                                           );
@@ -428,7 +458,7 @@ class _TShirtEditorState extends State<TShirtEditor> {
                                       FlatButton(
                                         child: const Text('Use it'),
                                         onPressed: () {
-                                          setState(() => currentColor = pickerColor);
+                                          setState(() => _valueNotifierToSetTextColor.value = pickerColor);
                                           Navigator.of(context).pop();
                                           _imageEditorStepBloc.add(AddPainterImageEvent());
                                         },
@@ -439,17 +469,8 @@ class _TShirtEditorState extends State<TShirtEditor> {
                           ),
                           BottomBarContainer(
                             icons: Icons.text_fields,
-                            onTap: () async {
-                              final value = await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) => TextEditor()));
-                              if (value.toString().isEmpty) {
-                                print("true");
-                              } else {
-                                _imageEditorStepBloc.add(AddTextImageEvent());
-                                _textOrEmojiValue = value;
-                              }
+                            onTap: () {
+                              _imageEditorStepBloc.add(AddTextImageEvent());
                             },
                           ),
                           BottomBarContainer(
@@ -460,25 +481,15 @@ class _TShirtEditorState extends State<TShirtEditor> {
                             },
                           ),
                           BottomBarContainer(
-                            icons: Icons.photo,
-                            onTap: () {
-                              showModalBottomSheet(
-                                  context: context,
-                                  builder: (context) {
-                                    return ColorPiskersSlider();
-                                  });
-                            },
-                          ),
-                          BottomBarContainer(
                             icons: FontAwesomeIcons.smile,
                             onTap: () {
                               _imageEditorStepBloc.add(AddEmojiImageEvent());
-                              Future getemojis = showModalBottomSheet(
+                              Future getEmojis = showModalBottomSheet(
                                   context: context,
                                   builder: (BuildContext context) {
                                     return Emojies();
                                   });
-                              getemojis.then((value) {
+                              getEmojis.then((value) {
                                 if (value != null) {
                                   setState(() {
                                     _textOrEmojiValue = value;
@@ -553,13 +564,6 @@ class _TShirtEditorState extends State<TShirtEditor> {
                             },
                           ),
                           BottomBarContainer(
-                            icons: Icons.clear,
-                            onTap: (){
-                              _controller.points.clear();
-                              setState(() {});
-                            },
-                          ),
-                          BottomBarContainer(
                             icons: Icons.camera,
                             onTap: (){
                               utils.openPhotoBottomSheetsToAddBaseImageOrSticker(
@@ -573,27 +577,29 @@ class _TShirtEditorState extends State<TShirtEditor> {
                             },
                           ),
                           BottomBarContainer(
+                            icons: Icons.arrow_back_ios,
+                            onTap: (){
+                              _imageEditorStepBloc.add(PreviousEvent());
+                            },
+                          ),
+                          BottomBarContainer(
+                            icons: Icons.arrow_forward_ios,
+                            onTap: (){
+                              _imageEditorStepBloc.add(PreviousEvent());
+                            },
+                          ),
+                          BottomBarContainer(
                             icons: Icons.save_alt,
                             onTap: (){
-                              File _imageFile;
-                              _imageFile = null;
-                              screenshotController
-                                  .capture(
-                                  delay: Duration(milliseconds: 500), pixelRatio: 1.5)
-                                  .then((File image) async {
-                                //print("Capture Done");
-                                setState(() {
-                                  _imageFile = image;
-                                });
-                                final paths = await getExternalStorageDirectory();
-                                image.copy(paths.path +
-                                    '/' +
-                                    DateTime.now().millisecondsSinceEpoch.toString() +
-                                    '.png');
-                                Navigator.pop(context, image);
-                              }).catchError((onError) {
-                                print(onError);
-                              });
+                              GallerySaver.saveImage(
+                                  ImageEditorStepBloc().
+                                  listOfEditingImage.last.path,
+                                  albumName: "TShirt"
+                              );
+                              Navigator.of(context).push(
+                                CupertinoPageRoute(builder:
+                                    (BuildContext context)=> ImageView())
+                              );
                             },
                           ),
                         ],
@@ -601,7 +607,77 @@ class _TShirtEditorState extends State<TShirtEditor> {
                     );
                   }
                   else if(state is TextImageState){
-                    return _saveOrExitEditImage();
+                    return Container(
+                      decoration: BoxDecoration(
+                          color: Colors.white,
+                          boxShadow: [BoxShadow(blurRadius: 4)]),
+                      height: 70,
+                      child:  Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: <Widget>[
+                          BottomBarContainer(
+                            icons: Icons.close,
+                            onTap: (){
+                              _controller.clear();
+                              _textOrEmojiValue = "";
+                              _valueNotifierForBorderBoxColor = ValueNotifier(Matrix4.identity());
+                              _imageEditorStepBloc.add(ExitEditImageEvent());
+                            },
+                          ),
+                          IconButton(
+                              icon: Icon(
+                                Icons.title,
+                                color: Colors.grey,
+                              ),
+                              onPressed: (){
+                                setState(() {
+                                  _valueNotifierToSetTextBackgroundFilled.value =
+                                  !_valueNotifierToSetTextBackgroundFilled.value;
+                                });
+                              },
+                          ),
+                          BarColorPicker(
+                              width: MediaQuery.of(context).size.width/2.5,
+                              thumbColor: Colors.white,
+                              cornerRadius: 10,
+                              pickMode: PickMode.Color,
+                              colorListener: (int value) {
+                                setState(() {
+                                  _valueNotifierToSetTextColor.value = Color(value);
+                                });
+                              }),
+                          BottomBarContainer(
+                            icons: Icons.assignment_turned_in_sharp,
+                            onTap: (){
+                              setState(() {
+                                _valueNotifierToScaleAndRotateWidget.value = Colors.transparent;
+                              });
+                              screenshotController
+                                  .capture(pixelRatio: 1.5)
+                                  .then((File image) async {
+                                final _imageFromPicker = File(image.path);
+                                final decodedImage =
+                                await decodeImageFromList(
+                                    _imageFromPicker.readAsBytesSync());
+                                _imageEditorStepBloc.add(
+                                    SaveEditImageEvent(
+                                        baseImage: image,
+                                        height: decodedImage.height,
+                                        width: decodedImage.width
+                                    )
+                                );
+                                _controller.clear();
+                                _textOrEmojiValue = "";
+                                _valueNotifierForBorderBoxColor = ValueNotifier(Matrix4.identity());
+                                _valueNotifierToScaleAndRotateWidget.value = Colors.black;
+                              }).catchError((onError) {
+                                ShowError.showCustomError(context, "onError");
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    );
                   }
                   else if(state is EmojiImageState){
                     return _saveOrExitEditImage();
@@ -698,55 +774,10 @@ class _PainterState extends State<Painter> {
   @override
   Widget build(BuildContext context) {
     return Signature(
-            controller: _controller,
-            height: widget.editorBoxHeight,
-            width: widget.editorBoxWidth,
-            backgroundColor: Colors.transparent,
-        );
-  }
-}
-
-
-class ColorPiskersSlider extends StatefulWidget {
-  @override
-  _ColorSliderState createState() => _ColorSliderState();
-}
-
-class _ColorSliderState extends State<ColorPiskersSlider> {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(20),
-      height: 260,
-      color: Colors.white,
-      child:  Column(
-        children: <Widget>[
-          Padding(
-            padding: const EdgeInsets.all(15.0),
-            child:  Text("Slider Filter Color"),
-          ),
-          Divider(
-            height: 1,
-          ),
-          SizedBox(height: 20),
-           Text("Slider Color"),
-          SizedBox(height: 10),
-          BarColorPicker(
-              width: 300,
-              thumbColor: Colors.white,
-              cornerRadius: 10,
-              pickMode: PickMode.Color,
-              colorListener: (int value) {
-                setState(() {
-                  //  currentColor = Color(value);
-                });
-              }),
-          SizedBox(height: 20),
-           Text("Slider Opicity"),
-          SizedBox(height: 10),
-          Slider(value: 0.1, min: 0.0, max: 1.0, onChanged: (v) {})
-        ],
-      ),
+      controller: _controller,
+      height: widget.editorBoxHeight,
+      width: widget.editorBoxWidth,
+      backgroundColor: Colors.transparent,
     );
   }
 }

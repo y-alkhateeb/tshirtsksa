@@ -13,16 +13,41 @@ class ImageEditorStepBloc
     extends Bloc<ImageEditorStepEvent, ImageEditorStepState> {
   ImageEditorStepBloc() : super(ImageEditorFirstStepInitialAddImageState());
 
-  List<File> _listOfEditingImage= List<File>();
+  List<File> listOfEditingImage= List<File>();
   List<int> _height = List<int>();
   List<int> _width = List<int>();
+  int counter = 1;
   @override
   Stream<ImageEditorStepState> mapEventToState(
     ImageEditorStepEvent event,
   ) async* {
 
-    if (event is AddImageEvent) {
-      _listOfEditingImage.add(event.baseImage);
+    if(event is PreviousEvent){
+      if(listOfEditingImage.length==1||_height.length == 1 ||_width.length == 1){
+        return;
+      }
+      counter++;
+      yield InsertImageState(
+        baseImage: listOfEditingImage[listOfEditingImage.length-counter],
+        height: _height[_height.length-counter],
+        width: _width[_width.length-counter],
+      );
+    }
+    else if(event is SuffixEvent){
+      if(listOfEditingImage.length==listOfEditingImage.length
+          ||_height.length == _height.length
+          ||_width.length == _width.length){
+        return;
+      }
+      counter--;
+      yield InsertImageState(
+        baseImage: listOfEditingImage[listOfEditingImage.length+counter],
+        height: _height[_height.length+counter],
+        width: _width[_width.length+counter],
+      );
+    }
+    else if (event is AddImageEvent) {
+      listOfEditingImage.add(event.baseImage);
       _height.add(event.height);
       _width.add(event.width);
       yield InsertImageState(
@@ -33,38 +58,38 @@ class ImageEditorStepBloc
     }
     else if (event is ExitEditImageEvent){
       yield InsertImageState(
-        baseImage: _listOfEditingImage.last,
+        baseImage: listOfEditingImage.last,
         height: _height.last,
         width: _width.last,
       );
     }
     else if(event is SaveEditImageEvent){
-      _listOfEditingImage.add(event.baseImage);
+      listOfEditingImage.add(event.baseImage);
       _height.add(event.height);
       _width.add(event.width);
       yield InsertImageState(
-        baseImage: _listOfEditingImage.last,
+        baseImage: listOfEditingImage.last,
         height: _height.last,
         width: _width.last,
       );
     }
     else if(event is AddTextImageEvent){
       yield TextImageState(
-        baseImage: _listOfEditingImage.last,
+        baseImage: listOfEditingImage.last,
         height: _height.last,
         width: _width.last,
       );
     }
     else if(event is AddEmojiImageEvent){
       yield EmojiImageState(
-        baseImage: _listOfEditingImage.last,
+        baseImage: listOfEditingImage.last,
         height: _height.last,
         width: _width.last,
       );
     }
     else if(event is AddPainterImageEvent){
       yield PaintImageState(
-        baseImage: _listOfEditingImage.last,
+        baseImage: listOfEditingImage.last,
         height: _height.last,
         width: _width.last,
       );
@@ -72,7 +97,7 @@ class ImageEditorStepBloc
     else if(event is AddStickerLayerEvent){
       yield StickerImageState(
         layerImage: event.baseImage,
-        baseImage: _listOfEditingImage.last,
+        baseImage: listOfEditingImage.last,
         height: _height.last,
         width: _width.last,
       );

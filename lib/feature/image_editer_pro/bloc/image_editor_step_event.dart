@@ -81,3 +81,17 @@ class AddStickerLayerEvent extends ImageEditorStepEvent {
     height
   ];
 }
+
+class PreviousEvent extends ImageEditorStepEvent {
+
+  const PreviousEvent();
+  @override
+  List<Object> get props => [];
+}
+
+class SuffixEvent extends ImageEditorStepEvent {
+
+  const SuffixEvent();
+  @override
+  List<Object> get props => [];
+}

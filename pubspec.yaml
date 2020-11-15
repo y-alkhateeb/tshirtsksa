@@ -46,9 +46,9 @@ dependencies:
   # A Flutter plugin for finding commonly used locations on the filesystem. Supports iOS, Android,
   # Linux and MacOS. Not all methods are supported on all platforms.
   path_provider: ^1.6.24
-  # We use the image_picker plugin to select images from the Android and iOS image library,
-  # but it can't save images to the gallery. This plugin can provide this feature.
-  image_gallery_saver: ^1.6.2
+  # Saves images and videos from network or temporary file to external storage.
+  # Both images and videos will be visible in Android Gallery and iOS Photos.
+  gallery_saver: ^2.0.1
   # This plugin provides a cross-platform (iOS, Android) API to request permissions and check their status.
   permission_handler: ^5.0.1+1
   # A simple plugin to capture widgets as Images.
