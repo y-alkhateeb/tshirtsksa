@@ -17,7 +17,6 @@ class ImageView extends StatefulWidget {
 }
 
 class _ImageViewState extends State<ImageView> {
-  double _scaleValue;
   final ScreenshotController screenshotBoxController = ScreenshotController();
   GlobalKey _containerKey = GlobalKey();
   @override
