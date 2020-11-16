@@ -64,6 +64,7 @@ dependencies:
   # You can customize types of reported gestures by passing shouldTranslate,
   # shouldScale and shouldRotate parameters.
   matrix_gesture_detector: ^0.1.0
+  image: ^2.1.19
 
 
   cupertino_icons: ^1.0.0

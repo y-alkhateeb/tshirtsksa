@@ -43,6 +43,11 @@ class ImageEditorStepBloc
           listOfEditingImage.last.path,
           albumName: "TShirt"
       );
+      /// Save box ima
+      await GallerySaver.saveImage(
+          event.boxImage.path,
+          albumName: "TShirt"
+      );
     }
     else if (event is AddImageEvent) {
       listOfEditingImage.add(event.baseImage);

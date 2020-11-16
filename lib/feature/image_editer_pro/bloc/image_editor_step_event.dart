@@ -90,8 +90,9 @@ class UndoChangeEvent extends ImageEditorStepEvent {
 }
 
 class SaveImageInGallery extends ImageEditorStepEvent {
+  final File boxImage;
 
-  const SaveImageInGallery();
+  const SaveImageInGallery(this.boxImage);
   @override
   List<Object> get props => [];
 }
