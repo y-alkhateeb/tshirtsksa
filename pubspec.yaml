@@ -40,7 +40,7 @@ dependencies:
   oktoast: ^2.3.2
   # A Flutter plugin for iOS and Android for picking images from the image library, and taking new pictures with the camera.
   image_picker: ^0.6.7+12
-
+  file_picker: ^2.0.13
   # The Font Awesome Icon pack available as set of Flutter Icons.
   font_awesome_flutter: ^8.10.0
   # A Flutter plugin for finding commonly used locations on the filesystem. Supports iOS, Android,

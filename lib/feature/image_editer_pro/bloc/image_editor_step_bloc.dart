@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
+import 'package:gallery_saver/gallery_saver.dart';
 
 part 'image_editor_step_event.dart';
 
@@ -22,28 +23,25 @@ class ImageEditorStepBloc
     ImageEditorStepEvent event,
   ) async* {
 
-    if(event is PreviousEvent){
-      if(listOfEditingImage.length==1||_height.length == 1 ||_width.length == 1){
+    if(event is UndoChangeEvent){
+      if(listOfEditingImage.length <= 1
+          ||_height.length <= 1
+          ||_width.length <= 1){
         return;
       }
-      counter++;
+      listOfEditingImage.removeLast();
+      _height.removeLast();
+      _width.removeLast();
       yield InsertImageState(
-        baseImage: listOfEditingImage[listOfEditingImage.length-counter],
-        height: _height[_height.length-counter],
-        width: _width[_width.length-counter],
+        baseImage: listOfEditingImage.last,
+        height: _height.last,
+        width: _width.last,
       );
     }
-    else if(event is SuffixEvent){
-      if(listOfEditingImage.length==listOfEditingImage.length
-          ||_height.length == _height.length
-          ||_width.length == _width.length){
-        return;
-      }
-      counter--;
-      yield InsertImageState(
-        baseImage: listOfEditingImage[listOfEditingImage.length+counter],
-        height: _height[_height.length+counter],
-        width: _width[_width.length+counter],
+    else if(event is SaveImageInGallery){
+      await GallerySaver.saveImage(
+          listOfEditingImage.last.path,
+          albumName: "TShirt"
       );
     }
     else if (event is AddImageEvent) {

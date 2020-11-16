@@ -8,21 +8,18 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:gallery_saver/gallery_saver.dart';
 import 'package:matrix_gesture_detector/matrix_gesture_detector.dart';
+import 'package:tshirtsksa/core/common/dimens.dart';
 import 'package:tshirtsksa/core/ui/show_error.dart';
 import 'package:tshirtsksa/feature/image_editer_pro/bloc/image_editor_step_bloc.dart';
 import 'package:tshirtsksa/feature/image_editer_pro/widget/all_emojies.dart';
 import 'package:tshirtsksa/feature/image_editer_pro/widget/bottombar_container.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:signature/signature.dart';
 import 'package:tshirtsksa/feature/image_editer_pro/widget/colors_picker.dart';
 import 'package:tshirtsksa/feature/image_editer_pro/widget/image_editor_first_step_inital_add_image_widget.dart';
 import 'package:tshirtsksa/feature/image_editer_pro/widget/image_editor_utils.dart';
 import 'package:tshirtsksa/feature/image_editer_pro/widget/view_save_image.dart';
-
-
 SignatureController _controller =
     SignatureController(penStrokeWidth: 5, penColor: Colors.green);
 
@@ -43,7 +40,7 @@ class _TShirtEditorState extends State<TShirtEditor> {
   final ImageEditorStepBloc _imageEditorStepBloc = ImageEditorStepBloc();
   double _editorBoxWidth = 300;
   double _editorBoxHeight = 300;
-
+  GlobalKey _containerKey = GlobalKey();
   TextEditingController heightTextController;
   TextEditingController widthTextController;
 
@@ -109,6 +106,7 @@ class _TShirtEditorState extends State<TShirtEditor> {
           body: Center(
             child: Screenshot(
               controller: screenshotController,
+              containerKey: _containerKey,
               child: BlocBuilder(
                 cubit: _imageEditorStepBloc,
                   buildWhen: (c, p) => c != p,
@@ -118,6 +116,7 @@ class _TShirtEditorState extends State<TShirtEditor> {
                   }
                   if(state is InsertImageState){
                     return Container(
+                      key: _containerKey,
                       width: MediaQuery.of(context).size.width,
                       height: MediaQuery.of(context).size.height,
                       child: Stack(
@@ -126,6 +125,7 @@ class _TShirtEditorState extends State<TShirtEditor> {
                               ? InteractiveViewer(
                                 child: Image.file(
                             state.baseImage,
+                            isAntiAlias: true,
                             height: state.height.toDouble(),
                             width: state.width.toDouble(),
                             fit: BoxFit.contain,
@@ -159,6 +159,7 @@ class _TShirtEditorState extends State<TShirtEditor> {
                   }
                   if(state is StickerImageState){
                     return Container(
+                      key: _containerKey,
                       width: MediaQuery.of(context).size.width,
                       height: MediaQuery.of(context).size.height,
                       child: Stack(
@@ -166,12 +167,13 @@ class _TShirtEditorState extends State<TShirtEditor> {
                           state.baseImage != null
                               ? InteractiveViewer(
                             child: Image.file(
-                            state.baseImage,
-                            height: state.height.toDouble(),
-                            width: state.width.toDouble(),
-                            fit: BoxFit.contain,
-                          ),
-                              )
+                              state.baseImage,
+                              isAntiAlias: true,
+                              height: state.height.toDouble(),
+                              width: state.width.toDouble(),
+                              fit: BoxFit.contain,
+                            ),
+                          )
                               : Container(),
                           Align(
                             alignment: Alignment.center,
@@ -186,7 +188,7 @@ class _TShirtEditorState extends State<TShirtEditor> {
                                       width: _editorBoxWidth,
                                       height: _editorBoxHeight,
                                       decoration: BoxDecoration(
-                                          border: Border.all(color: _valueNotifierToScaleAndRotateWidget.value,width: 0.2,),
+                                        border: Border.all(color: _valueNotifierToScaleAndRotateWidget.value,width: 0.2,),
                                       ),
                                     ),
                                   ),
@@ -195,18 +197,19 @@ class _TShirtEditorState extends State<TShirtEditor> {
                                       _valueNotifierForBorderBoxColor.value = m;
                                     },
                                     child: AnimatedBuilder(
-                                      animation: _valueNotifierForBorderBoxColor,
-                                      builder: (ctx, child) {
-                                        return Transform(
-                                          transform: _valueNotifierForBorderBoxColor.value,
-                                          child: Image.file(
-                                            state.layerImage,
-                                            width: _editorBoxWidth,
-                                            height: _editorBoxHeight,
-                                            fit: BoxFit.contain,
-                                          ),
-                                        );
-                                      }
+                                        animation: _valueNotifierForBorderBoxColor,
+                                        builder: (ctx, child) {
+                                          return Transform(
+                                            transform: _valueNotifierForBorderBoxColor.value,
+                                            child: Image.file(
+                                              state.layerImage,
+                                              isAntiAlias: true,
+                                              width: _editorBoxWidth,
+                                              height: _editorBoxHeight,
+                                              fit: BoxFit.contain,
+                                            ),
+                                          );
+                                        }
                                     ),
                                   )
                                 ],
@@ -219,6 +222,7 @@ class _TShirtEditorState extends State<TShirtEditor> {
                   }
                   if(state is PaintImageState){
                     return Container(
+                      key: _containerKey,
                       width: MediaQuery.of(context).size.width,
                       height: MediaQuery.of(context).size.height,
                       child: Stack(
@@ -227,6 +231,7 @@ class _TShirtEditorState extends State<TShirtEditor> {
                               ? InteractiveViewer(
                             child: Image.file(
                               state.baseImage,
+                              isAntiAlias: true,
                               height: state.height.toDouble(),
                               width: state.width.toDouble(),
                               fit: BoxFit.contain,
@@ -267,6 +272,7 @@ class _TShirtEditorState extends State<TShirtEditor> {
                       textFocusNode.unfocus();
                     }
                     return Container(
+                      key: _containerKey,
                       width: MediaQuery.of(context).size.width,
                       height: MediaQuery.of(context).size.height,
                       child: Stack(
@@ -275,6 +281,7 @@ class _TShirtEditorState extends State<TShirtEditor> {
                               ? InteractiveViewer(
                             child: Image.file(
                               state.baseImage,
+                              isAntiAlias: true,
                               height: state.height.toDouble(),
                               width: state.width.toDouble(),
                               fit: BoxFit.contain,
@@ -308,8 +315,8 @@ class _TShirtEditorState extends State<TShirtEditor> {
                                           return Transform(
                                             transform: _valueNotifierForBorderBoxColor.value,
                                             child: Container(
-                                                width: _editorBoxWidth,
-                                                height: _editorBoxHeight,
+                                              width: _editorBoxWidth,
+                                              height: _editorBoxHeight,
                                               child: TextFormField(
                                                 focusNode: textFocusNode,
                                                 cursorColor: _valueNotifierToSetTextColor.value,
@@ -318,19 +325,17 @@ class _TShirtEditorState extends State<TShirtEditor> {
                                                 autofocus: true,
                                                 keyboardType: TextInputType.multiline,
                                                 textInputAction: TextInputAction.newline,
-                                                decoration: new InputDecoration(
+                                                decoration: InputDecoration(
                                                     border: InputBorder.none,
                                                     focusedBorder: InputBorder.none,
                                                     enabledBorder: InputBorder.none,
                                                     errorBorder: InputBorder.none,
                                                     disabledBorder: InputBorder.none,
                                                 ),
-                                                onFieldSubmitted: (v){
-                                                  print("onEditingComplete");
-                                                },
                                                 style: TextStyle(
                                                   color: _valueNotifierToSetTextColor.value,
                                                   decorationThickness: 0.001,
+                                                  fontSize: ScreenUtil().setSp(Dimens.font_sp28),
                                                   background: Paint()..color =
                                                       _valueNotifierToSetTextBackgroundFilled.value== true
                                                           ? Colors.white :
@@ -352,6 +357,7 @@ class _TShirtEditorState extends State<TShirtEditor> {
                   }
                   if(state is EmojiImageState){
                     return Container(
+                      key: _containerKey,
                       width: MediaQuery.of(context).size.width,
                       height: MediaQuery.of(context).size.height,
                       child: Stack(
@@ -360,6 +366,7 @@ class _TShirtEditorState extends State<TShirtEditor> {
                               ? InteractiveViewer(
                             child: Image.file(
                               state.baseImage,
+                              isAntiAlias: true,
                               height: state.height.toDouble(),
                               width: state.width.toDouble(),
                               fit: BoxFit.contain,
@@ -474,13 +481,6 @@ class _TShirtEditorState extends State<TShirtEditor> {
                             },
                           ),
                           BottomBarContainer(
-                            icons: FontAwesomeIcons.eraser,
-                            onTap: () {
-                              _controller.clear();
-                              _textOrEmojiValue = "";
-                            },
-                          ),
-                          BottomBarContainer(
                             icons: FontAwesomeIcons.smile,
                             onTap: () {
                               _imageEditorStepBloc.add(AddEmojiImageEvent());
@@ -572,33 +572,26 @@ class _TShirtEditorState extends State<TShirtEditor> {
                                     baseImage: image,
                                     height: height,
                                     width: width,
-                                  )
+                                  ),
+                                isSticker: true,
                               );
                             },
                           ),
                           BottomBarContainer(
                             icons: Icons.arrow_back_ios,
                             onTap: (){
-                              _imageEditorStepBloc.add(PreviousEvent());
-                            },
-                          ),
-                          BottomBarContainer(
-                            icons: Icons.arrow_forward_ios,
-                            onTap: (){
-                              _imageEditorStepBloc.add(PreviousEvent());
+                              _imageEditorStepBloc.add(UndoChangeEvent());
                             },
                           ),
                           BottomBarContainer(
                             icons: Icons.save_alt,
-                            onTap: (){
-                              GallerySaver.saveImage(
-                                  ImageEditorStepBloc().
-                                  listOfEditingImage.last.path,
-                                  albumName: "TShirt"
-                              );
+                            onTap: () async {
+                              _imageEditorStepBloc.add(SaveImageInGallery());
                               Navigator.of(context).push(
                                 CupertinoPageRoute(builder:
-                                    (BuildContext context)=> ImageView())
+                                    (BuildContext context)=> ImageView(
+                                      file: state.baseImage,
+                                    ))
                               );
                             },
                           ),
@@ -722,7 +715,7 @@ class _TShirtEditorState extends State<TShirtEditor> {
                 _valueNotifierToScaleAndRotateWidget.value = Colors.transparent;
               });
               screenshotController
-                  .capture(pixelRatio: 1.5)
+                  .capture(pixelRatio: 2)
                   .then((File image) async {
                 final _imageFromPicker = File(image.path);
                 final decodedImage =

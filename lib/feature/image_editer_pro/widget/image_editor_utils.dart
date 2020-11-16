@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:tshirtsksa/feature/image_editer_pro/bloc/image_editor_step_bloc.dart';
@@ -14,7 +15,7 @@ class ImageEditorUtils{
       File baseImage,
       int height,
       int width
-      )) {
+      ), {bool isSticker = false}) {
     showModalBottomSheet<void>(
       context: context,
       builder: (BuildContext context) {
@@ -45,20 +46,43 @@ class ImageEditorUtils{
                           IconButton(
                               icon: Icon(Icons.photo_library),
                               onPressed: () async {
-                                final pickedFile = await imagePicker.getImage(
-                                    source: ImageSource.gallery);
-                                if (pickedFile != null) {
-                                  final _imageFromPicker = File(pickedFile.path);
-                                  var decodedImage =
-                                  await decodeImageFromList(
-                                      _imageFromPicker.readAsBytesSync());
-                                  // _controller.clear();
-                                  imageEditorStepBloc.add(event(
-                                    _imageFromPicker,
-                                    decodedImage.height,
-                                    decodedImage.width,
-                                  ));
-                                  Navigator.pop(context);
+                                if (isSticker){
+                                  FilePickerResult pickedFile = await FilePicker.platform.pickFiles(
+                                    type: FileType.custom,
+                                    allowCompression: false,
+                                    allowMultiple: false,
+                                    allowedExtensions: ['jpg', 'jpeg', 'svg', 'png'],
+                                  );
+                                  if(pickedFile != null){
+                                    print(pickedFile.files.first.path);
+                                    final _imageFromPicker = File(pickedFile.files.first.path);
+                                    var decodedImage =
+                                    await decodeImageFromList(
+                                        _imageFromPicker.readAsBytesSync());
+                                    imageEditorStepBloc.add(event(
+                                      _imageFromPicker,
+                                      decodedImage.height,
+                                      decodedImage.width,
+                                    ));
+                                    Navigator.pop(context);
+                                  }
+                                }
+                                else{
+                                  final pickedFile = await imagePicker.getImage(
+                                      source: ImageSource.gallery,imageQuality: 100);
+                                  if (pickedFile != null) {
+                                    final _imageFromPicker = File(pickedFile.path);
+                                    var decodedImage =
+                                    await decodeImageFromList(
+                                        _imageFromPicker.readAsBytesSync());
+                                    // _controller.clear();
+                                    imageEditorStepBloc.add(event(
+                                      _imageFromPicker,
+                                      decodedImage.height,
+                                      decodedImage.width,
+                                    ));
+                                    Navigator.pop(context);
+                                  }
                                 }
                               }),
                           const SizedBox(width: 10),
@@ -75,7 +99,7 @@ class ImageEditorUtils{
                               icon: Icon(Icons.camera_alt),
                               onPressed: () async {
                                 final pickedFile = await imagePicker.getImage(
-                                    source: ImageSource.camera);
+                                    source: ImageSource.camera,imageQuality: 100);
                                 if (pickedFile != null) {
                                   final _imageFromPicker = File(pickedFile.path);
                                   var decodedImage =

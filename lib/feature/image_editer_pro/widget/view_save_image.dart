@@ -11,11 +11,27 @@ class ImageView extends StatefulWidget {
 }
 
 class _ImageViewState extends State<ImageView> {
+  double _scaleValue;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: new Center(
-        child: new Image.file(widget.file),
+      body: Center(
+        child: GestureDetector(
+          onScaleUpdate: (scaleValue){
+            setState(() {
+              _scaleValue = scaleValue.scale;
+            });
+          },
+          child: Transform.scale(
+            scale: _scaleValue??1,
+            child: Image.file(
+                widget.file,
+              isAntiAlias: true,
+              fit: BoxFit.contain,
+            ),
+          ),
+        ),
       ),
     );
   }
