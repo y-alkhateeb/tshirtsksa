@@ -9,6 +9,7 @@ import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:matrix_gesture_detector/matrix_gesture_detector.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:tshirtsksa/core/common/dimens.dart';
 import 'package:tshirtsksa/core/ui/show_error.dart';
 import 'package:tshirtsksa/feature/image_editer_pro/bloc/image_editor_step_bloc.dart';
@@ -16,11 +17,10 @@ import 'package:tshirtsksa/feature/image_editer_pro/widget/all_emojies.dart';
 import 'package:tshirtsksa/feature/image_editer_pro/widget/bottombar_container.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:signature/signature.dart';
-import 'package:tshirtsksa/feature/image_editer_pro/widget/box_image_clipper.dart';
 import 'package:tshirtsksa/feature/image_editer_pro/widget/colors_picker.dart';
-import 'package:tshirtsksa/feature/image_editer_pro/widget/image_editor_first_step_inital_add_image_widget.dart';
 import 'package:tshirtsksa/feature/image_editer_pro/widget/image_editor_utils.dart';
 import 'package:tshirtsksa/feature/image_editer_pro/widget/view_save_image.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
 SignatureController _controller =
     SignatureController(penStrokeWidth: 5, penColor: Colors.green);
@@ -31,6 +31,7 @@ class TShirtEditor extends StatefulWidget {
 }
 
 class _TShirtEditorState extends State<TShirtEditor> {
+  final String tShirtName = "assets/png/tshirt/2.jpg";
   /// Controls whether this widget has keyboard focus.
   final FocusNode textFocusNode = FocusNode();
   ImageEditorUtils utils;
@@ -90,7 +91,6 @@ class _TShirtEditorState extends State<TShirtEditor> {
 
   @override
   void initState() {
-    // WidgetsBinding.instance.addPostFrameCallback(_afterLayout);
     utils = ImageEditorUtils(
         context: context, imageEditorStepBloc: _imageEditorStepBloc);
     _textOrEmojiValue = "";
@@ -107,6 +107,16 @@ class _TShirtEditorState extends State<TShirtEditor> {
     _editorBoxHeight = MediaQuery.of(context).size.height/2.3;
     _editorBoxWidth = MediaQuery.of(context).size.width/2;
     super.didChangeDependencies();
+  }
+
+  Future<File> getImageFileFromAssets(String path) async {
+    final byteData = await rootBundle.load('$path');
+
+    final file = File('${(await getTemporaryDirectory()).path}/$path');
+    file.createSync(recursive: true);
+    await file.writeAsBytes(byteData.buffer.asUint8List(byteData.offsetInBytes, byteData.lengthInBytes));
+
+    return file;
   }
 
   @override
@@ -126,8 +136,53 @@ class _TShirtEditorState extends State<TShirtEditor> {
                   buildWhen: (c, p) => c != p,
                   builder: (context, state) {
                   if(state is ImageEditorFirstStepInitialAddImageState){
-                    return ImageEditorFirstStepInitialAddImageWidget(
-                      imageEditorStepBloc: _imageEditorStepBloc,
+                    Future.delayed(const Duration(milliseconds: 10),() async {
+                      final imageFile = await getImageFileFromAssets(tShirtName);
+                      final _imageFromPicker = imageFile;
+                      final decodedImage =
+                          await decodeImageFromList(
+                          _imageFromPicker.readAsBytesSync());
+                      _imageEditorStepBloc.add(
+                          AddImageEvent(
+                            baseImage: imageFile,
+                            height: decodedImage.height,
+                            width: decodedImage.width,
+                          )
+                      );
+                    });
+                    return Container(
+                      key: _containerKey,
+                      width: MediaQuery.of(context).size.width,
+                      height: MediaQuery.of(context).size.height,
+                      child: Stack(
+                        children: <Widget>[
+                          InteractiveViewer(
+                            child: Image.asset(
+                              tShirtName,
+                              isAntiAlias: true,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                          Align(
+                            alignment: Alignment.center,
+                            child: Stack(
+                              children: [
+                                Align(
+                                  alignment: Alignment.center,
+                                  child: Container(
+                                    key: _cropImagekey,
+                                    width: _editorBoxWidth,
+                                    height: _editorBoxHeight,
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: Colors.black,width: 0.2,),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     );
                   }
                   if(state is InsertImageState){
@@ -332,10 +387,10 @@ class _TShirtEditorState extends State<TShirtEditor> {
                                                 focusNode: textFocusNode,
                                                 cursorColor: _valueNotifierToSetTextColor.value,
                                                 cursorWidth: 1,
-                                                maxLines: 10,
+                                                maxLines: 1,
                                                 autofocus: true,
-                                                keyboardType: TextInputType.multiline,
-                                                textInputAction: TextInputAction.newline,
+                                                keyboardType: TextInputType.text,
+                                                textInputAction: TextInputAction.done,
                                                 decoration: InputDecoration(
                                                     border: InputBorder.none,
                                                     focusedBorder: InputBorder.none,
@@ -431,7 +486,59 @@ class _TShirtEditorState extends State<TShirtEditor> {
                       ),
                     );
                   }
-                  else return ImageEditorFirstStepInitialAddImageWidget(imageEditorStepBloc: _imageEditorStepBloc,);
+                  else return Container(
+                    key: _containerKey,
+                    width: MediaQuery.of(context).size.width,
+                    height: MediaQuery.of(context).size.height,
+                    child: Stack(
+                      children: <Widget>[
+                        InteractiveViewer(
+                          child: Image.asset(
+                            tShirtName,
+                            isAntiAlias: true,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                        Align(
+                          alignment: Alignment.center,
+                          child: Stack(
+                            children: [
+                              Align(
+                                alignment: Alignment.center,
+                                child: InkWell(
+                                  onTap: () async {
+                                    final imageFile = await getImageFileFromAssets(tShirtName);
+                                    final _imageFromPicker = imageFile;
+                                    final decodedImage =
+                                    await decodeImageFromList(
+                                        _imageFromPicker.readAsBytesSync());
+                                    _imageEditorStepBloc.add(
+                                        AddImageEvent(
+                                          baseImage: imageFile,
+                                          height: decodedImage.height,
+                                          width: decodedImage.width,
+                                        )
+                                    );
+                                  },
+                                  child: Container(
+                                    key: _cropImagekey,
+                                    width: _editorBoxWidth,
+                                    height: _editorBoxHeight,
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: Colors.black,width: 0.2,),
+                                    ),
+                                    child: Text(
+                                        "Tap and create your own T-Shirt"
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
                 }
               ),
             ),
@@ -440,12 +547,7 @@ class _TShirtEditorState extends State<TShirtEditor> {
                 cubit: _imageEditorStepBloc,
                 buildWhen: (c, p) => c != p,
                 builder: (context, state) {
-                  if(state is ImageEditorFirstStepInitialAddImageState){
-                    return Container(
-                      height: 0,
-                    );
-                  }
-                  else if(state is InsertImageState){
+                  if(state is InsertImageState){
                     return Container(
                       decoration: BoxDecoration(
                           color: Colors.white,
